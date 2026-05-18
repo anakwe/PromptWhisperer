@@ -1,0 +1,23 @@
+<idea-plugin>
+  <id>com.promptwhisperer.plugin</id>
+  <name>Prompt Whisperer</name>
+  <version>${project.version}</version>
+  <vendor email="security@promptwhisperer.local">Prompt Whisperer Contributors</vendor>
+
+  <description>
+    Prompt Whisperer - local-first assistant for crafting high-quality implementation prompts.
+  </description>
+
+  <depends>com.intellij.modules.platform</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindowFactory
+      factoryClass="com.promptwhisperer.ui.PromptWhispererToolWindowFactory"
+      id="Prompt Whisperer"
+      anchor="right"
+      secondary="false"
+      stripeTitle="Prompt Whisperer"
+    />
+  </extensions>
+
+</idea-plugin>
