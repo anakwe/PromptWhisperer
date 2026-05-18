@@ -3,3 +3,7 @@
 build/
 *.iml
 .prompt-whisperer/
+
+# Leftover Gradle distribution zip — do not commit
+gradle-*.zip
+
