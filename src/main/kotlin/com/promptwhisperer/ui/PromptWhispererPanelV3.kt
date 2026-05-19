@@ -8,6 +8,7 @@ import com.promptwhisperer.models.BehaviourProfile
 import com.promptwhisperer.models.PromptDepth
 import com.promptwhisperer.models.PromptSessionConfig
 import com.promptwhisperer.models.ClarificationQuestion
+import com.promptwhisperer.services.ArtefactPersistenceServiceImpl
 import com.promptwhisperer.services.BehaviourProfileServiceImpl
 import com.promptwhisperer.services.ClarificationServiceImpl
 import com.promptwhisperer.services.PromptBuilderImpl
@@ -21,7 +22,6 @@ import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import javax.swing.BorderFactory
 import javax.swing.JButton
-import javax.swing.JCheckBox
 import javax.swing.JComboBox
 import javax.swing.JLabel
 import javax.swing.JPanel
@@ -44,7 +44,7 @@ import javax.swing.UIManager
  * - Mode selector
  * - Configuration (profile, depth)
  * - Task input or Troubleshooting input (card layout)
- - Clarifications (dynamic, shown after analysis)
+ * - Clarifications (dynamic, shown after analysis)
  * - Large central prompt preview
  * - Activity log (secondary)
  */
@@ -121,6 +121,7 @@ class PromptWhispererPanelV3(private val project: Project) {
     private val behaviourProfileService = BehaviourProfileServiceImpl()
     private val promptBuilder = PromptBuilderImpl()
     private val troubleshootingService = TroubleshootingServiceImpl()
+    private val artefactPersistenceService = ArtefactPersistenceServiceImpl(project)
 
     private var sessionConfig = PromptSessionConfig()
     private var currentClarifications: List<ClarificationQuestion> = emptyList()
@@ -177,10 +178,14 @@ class PromptWhispererPanelV3(private val project: Project) {
         logScroll.preferredSize = Dimension(0, 80)
         logPanel.add(logScroll, BorderLayout.CENTER)
 
+        val southPanel = JPanel(BorderLayout(0, 4))
+        southPanel.add(controlPanel, BorderLayout.NORTH)
+        southPanel.add(logPanel, BorderLayout.CENTER)
+
         // Assemble main layout
         component.add(JBScrollPane(topPanel), BorderLayout.NORTH)
         component.add(previewPanel, BorderLayout.CENTER)
-        component.add(controlPanel, BorderLayout.SOUTH)
+        component.add(southPanel, BorderLayout.SOUTH)
     }
 
     private fun buildHeaderPanel(): JPanel {
@@ -331,7 +336,18 @@ class PromptWhispererPanelV3(private val project: Project) {
 
         // Save button
         saveButton.addActionListener {
-            log("💾 Save feature coming soon.")
+            val text = promptPreview.text.trim()
+            if (text.isEmpty() || text.startsWith("(No prompt")) {
+                log("⚠  Generate a prompt before saving.")
+                return@addActionListener
+            }
+
+            try {
+                val artefact = artefactPersistenceService.savePromptArtefact(text, project)
+                log("✅ Saved: .prompt-whisperer/prompts/${artefact.filename}")
+            } catch (e: Exception) {
+                log("❌ Save failed: ${e.message ?: "Unknown error"}")
+            }
         }
 
         // Reset button

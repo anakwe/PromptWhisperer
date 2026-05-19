@@ -2,12 +2,13 @@
   <id>com.promptwhisperer.plugin</id>
   <name>Prompt Whisperer</name>
   <version>0.1.0</version>
-  <vendor email="security@promptwhisperer.local">Prompt Whisperer Contributors</vendor>
+  <vendor email="opensource@anakwe.org" url="https://github.com/anakwe/PromptWhisperer">anakwe</vendor>
 
   <description><![CDATA[
     <b>Prompt Whisperer</b> — local-first assistant for crafting high-quality AI coding prompts.<br/><br/>
     <ul>
-      <li><b>Standard Mode</b>: generate structured implementation prompts for features, refactors and tasks.</li>
+      <li><b>Implementation Modes</b>: Standard, Architecture, Debugging, Security Review, and Test Generation prompts.</li>
+      <li><b>Engineering Profiles</b>: nine profile-driven behaviours (Balanced Engineer, Senior Architect, Security Engineer, and more).</li>
       <li><b>Troubleshooting Mode</b>: evidence-based debugging with no-loop protection and shell profile safety.</li>
     </ul>
   ]]></description>

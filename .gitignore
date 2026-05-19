@@ -3,7 +3,24 @@
 build/
 *.iml
 .prompt-whisperer/
+.intellijPlatform/
 
 # Leftover Gradle distribution zip — do not commit
 gradle-*.zip
+
+# OS/editor noise
+.DS_Store
+
+# Logs and runtime artifacts
+*.log
+
+# Local env and sensitive material
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+secrets.*
 
