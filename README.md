@@ -2,17 +2,156 @@
 
 An IntelliJ IDEA plugin that generates structured, evidence-based prompts for AI coding assistants.
 
+**Prompt Whisperer helps you turn a rough coding idea or debugging challenge into a clear, actionable prompt for GitHub Copilot, Claude, or any other AI assistant.**
+
+Describe what you want. Choose a mode. Generate the prompt. Copy it into Copilot Chat. Done.
+
 ---
 
-## Modes
+## Six Generation Modes
 
-### Standard Mode
-Generate implementation prompts for new features, refactors or tasks.
-Enter a task description and Prompt Whisperer generates a structured prompt you can copy into Copilot, Claude, or any other AI assistant.
+### 1. **Standard Mode**
+**Purpose:** General implementation prompts for new features, refactors and tasks.
 
-### Troubleshooting Mode
-Help Copilot (or any AI assistant) debug failures in a controlled, evidence-based way.
-See [Troubleshooting Mode](#troubleshooting-mode) below.
+**What it generates:**
+- A clear restatement of your goal
+- Implementation best practices (simplicity, maintainability, conventions)
+- A suggested step-by-step plan
+- Acceptance criteria and constraints
+- Expected output format for code review
+
+**Use this when:** You want Copilot to build a feature or make a change.
+
+---
+
+### 2. **Architecture Mode**
+**Purpose:** Asks Copilot to propose a design BEFORE writing code.
+
+**What it generates:**
+- Instructions to analyse the project structure first
+- Request for design proposal (component names, responsibilities, data flow)
+- Trade-off analysis requirement (why this design over alternatives)
+- Risk identification
+- Scope estimation
+- Explicit request to wait for your confirmation before implementing
+
+**Use this when:** The change is large or affects multiple modules. You want Copilot to explain its design thinking before coding.
+
+---
+
+### 3. **Debugging Mode**
+**Purpose:** Evidence-based debugging with no-loop protection.
+
+**What it generates:**
+- Instructions to diagnose before changing code
+- Request for root cause analysis (deepest cause, not wrapper errors)
+- Requirement to cite specific evidence (files, lines, stack traces)
+- Request for smallest safe, targeted fix (not a refactor)
+- Verification command requirement
+- Explicit constraint: no wild dependency version changes, no repeating failed commands
+
+**Use this when:** A build/test has failed and you want a systematic diagnosis before trying fixes.
+
+---
+
+### 4. **Security Review Mode**
+**Purpose:** Focused security checklist for code or configuration.
+
+**What it generates:**
+- Comprehensive security checklist (hardcoded secrets, unsafe file reads, unvalidated input, unnecessary network calls, permission risks, sensitive logging, prompt injection, vulnerable dependencies, auth/authz, insecure defaults)
+- Request for each finding to include: risk description, severity, location, recommended fix
+- Summary of items checked and confirmed safe
+- Constraint: report all findings first, do not auto-apply fixes
+
+**Use this when:** You want Copilot to review code or configuration for security risks.
+
+---
+
+### 5. **Test Generation Mode**
+**Purpose:** Add tests matching your project's existing style and frameworks.
+
+**What it generates:**
+- Instructions to inspect your project's testing framework and conventions first
+- Request for three test categories: happy path, edge cases, regression cases
+- Warnings against brittle tests and new test frameworks
+- Requirement to provide exact run commands (new tests only + full suite)
+- Constraint: deterministic tests, observable behaviour, single responsibility per test
+
+**Use this when:** You want Copilot to add tests to existing code.
+
+---
+
+### 6. **⚠  Troubleshooting Mode** (Evidence-Based Debugging)
+**Purpose:** Step-by-step debugging with protection against agent loops.
+
+**Core principle:** Fix the current problem without mutating your machine.
+
+**What it requires:**
+- The exact failing command
+- The exact error output or stack trace
+- The technology/tool (gradle, npm, docker, terraform, kubectl, etc.)
+- Any material changes since the last failure
+
+**What it provides:**
+- Current diagnostic phase (TOOLCHAIN / DEPENDENCY / COMPILATION / TESTING / RUNTIME / PACKAGING / DEPLOYMENT)
+- Identified root cause
+- One next diagnostic command (not a 10-step mega-fix)
+- Why that specific command
+- What success looks like
+- No-loop protection (blocks retry if nothing material changed)
+
+**Use this when:** A command failed and you want systematic evidence-based debugging with Copilot.
+
+See [Troubleshooting Mode](#troubleshooting-mode) below for detailed guidance.
+
+---
+
+## Installation and Getting Started
+
+### Install the plugin
+
+1. **Clone this repository:**
+   ```bash
+   git clone https://github.com/your-org/prompt-whisperer.git
+   cd prompt-whisperer
+   ```
+
+2. **Build and run locally in IntelliJ sandbox:**
+   ```bash
+   ./gradlew clean test
+   ./gradlew runIde
+   ```
+   This launches IntelliJ IDEA with the plugin pre-installed.
+
+3. **Or install into your own IntelliJ:**
+   ```bash
+   ./gradlew buildPlugin
+   ```
+   Then in IntelliJ: **Settings > Plugins > ⚙️ (gear icon) > Install Plugin from Disk** and select `build/distributions/prompt-whisperer-0.1.0.jar`.
+
+### Open Prompt Whisperer in IntelliJ
+
+1. In IntelliJ, open **View > Tool Windows > Prompt Whisperer**.
+2. Or press `Shift` twice and search for "Prompt Whisperer".
+
+### Quick workflow
+
+1. **Describe your task** in the input text area.
+   - Example: "Build a simple demo website with an embedded video, responsive layout, and README instructions."
+
+2. **Choose a generation mode** from the dropdown.
+   - Standard, Architecture, Debugging, Security Review, Test Generation, or Troubleshooting.
+
+3. **Click ▶ Generate Prompt**.
+   - A complete, structured prompt appears in the preview area.
+
+4. **Review the prompt**, edit if needed.
+
+5. **Click ⎘ Copy Prompt** to copy it to your clipboard.
+
+6. **Paste into Copilot Chat** and let it work.
+
+7. **(Optional) Click 💾 Save Artefact** to save the prompt under `.prompt-whisperer/prompts/`.
 
 ---
 
