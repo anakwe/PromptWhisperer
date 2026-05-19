@@ -66,7 +66,7 @@ class PromptWhispererPanel(private val project: Project) {
     }
     private val generateButton = JButton("▶  Generate Prompt")
     private val copyButton     = JButton("⎘  Copy Prompt")
-    private val saveButton     = JButton("💾  Save Artefact")
+    private val saveButton     = JButton("  Save Artefact")
     private val resetButton    = JButton("↺  Reset")
 
     // ─── Troubleshooting inputs ───────────────────────────────────────────────
@@ -84,7 +84,7 @@ class PromptWhispererPanel(private val project: Project) {
     private val tsMaterialChangeField = JBTextField().apply {
         toolTipText = "What changed since the last failure? (leave blank if nothing changed)"
     }
-    private val tsAnalyseButton = JButton("🔍  Analyse Failure")
+    private val tsAnalyseButton = JButton("  Analyse Failure")
     private val tsCopyButton    = JButton("⎘  Copy Prompt")
     private val tsResetButton   = JButton("↺  Reset")
 

@@ -13,7 +13,7 @@ class PromptWhispererToolWindowFactory : ToolWindowFactory, DumbAware {
     override fun shouldBeAvailable(project: Project): Boolean = true
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val panel = PromptWhispererPanel(project)
+        val panel = PromptWhispererPanelV3(project)
         val content = toolWindow.contentManager.factory.createContent(panel.component, "", false)
         toolWindow.contentManager.addContent(content)
     }
