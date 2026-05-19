@@ -10,6 +10,8 @@ import com.intellij.openapi.wm.ToolWindowFactory
  * Keeps UI code separate from business logic services.
  */
 class PromptWhispererToolWindowFactory : ToolWindowFactory, DumbAware {
+    override fun shouldBeAvailable(project: Project): Boolean = true
+
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val panel = PromptWhispererPanel(project)
         val content = toolWindow.contentManager.factory.createContent(panel.component, "", false)

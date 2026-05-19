@@ -33,4 +33,11 @@ tasks {
     test {
         useJUnitPlatform()
     }
+
+    runIde {
+        // Increase sandbox IDE heap to avoid slow startup / OOM during local testing
+        jvmArgs("-Xmx2g", "-Xms256m")
+        // Suppress JetBrains consent dialog in sandbox
+        systemProperty("idea.gdpr.accepted", "true")
+    }
 }

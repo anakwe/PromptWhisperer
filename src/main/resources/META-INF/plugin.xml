@@ -1,20 +1,24 @@
 <idea-plugin>
   <id>com.promptwhisperer.plugin</id>
   <name>Prompt Whisperer</name>
-  <version>${project.version}</version>
+  <version>0.1.0</version>
   <vendor email="security@promptwhisperer.local">Prompt Whisperer Contributors</vendor>
 
-  <description>
-    Prompt Whisperer - local-first assistant for crafting high-quality implementation prompts.
-  </description>
+  <description><![CDATA[
+    <b>Prompt Whisperer</b> — local-first assistant for crafting high-quality AI coding prompts.<br/><br/>
+    <ul>
+      <li><b>Standard Mode</b>: generate structured implementation prompts for features, refactors and tasks.</li>
+      <li><b>Troubleshooting Mode</b>: evidence-based debugging with no-loop protection and shell profile safety.</li>
+    </ul>
+  ]]></description>
 
   <depends>com.intellij.modules.platform</depends>
 
   <extensions defaultExtensionNs="com.intellij">
-    <toolWindowFactory
-      factoryClass="com.promptwhisperer.ui.PromptWhispererToolWindowFactory"
+    <toolWindow
       id="Prompt Whisperer"
       anchor="right"
+      factoryClass="com.promptwhisperer.ui.PromptWhispererToolWindowFactory"
       secondary="false"
       stripeTitle="Prompt Whisperer"
     />
