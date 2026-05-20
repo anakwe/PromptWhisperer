@@ -91,6 +91,8 @@ class PromptClarificationTests {
 
         assertTrue(prompt.contains("Reasoning stance: Threat-model-first architect"))
         assertTrue(prompt.contains("Threat boundary review and least-privilege checks"))
+        assertTrue(prompt.contains("trust boundar", ignoreCase = true))
+        assertTrue(prompt.contains("least privilege", ignoreCase = true))
     }
 
     @Test
