@@ -32,6 +32,7 @@ class PromptBuilderImpl : PromptBuilder {
             BehaviourProfileBlock(),
             PromptDepthBlock(),
             ClarificationAnswersBlock(),
+            ClarificationGuidanceBlock(),
             PlanningBalanceBlock(),
             ImplementationConsiderationsBlock(),
             RecommendedArchitectureBlock(),

@@ -192,6 +192,21 @@ Answer: ${question.resolvedAnswer()}"""
     }
 }
 
+class ClarificationGuidanceBlock : PromptBlock {
+    override fun render(context: PromptBuildContext): String {
+        val guidance = context.inference.clarificationGuidance
+        if (guidance.isEmpty()) {
+            return ""
+        }
+
+        return """
+            ## Clarification-Driven Guidance
+
+            ${guidance.joinToString("\n") { "- $it" }}
+            """.trimIndent()
+    }
+}
+
 class ImplementationConsiderationsBlock : PromptBlock {
     override fun render(context: PromptBuildContext): String {
         val lines =
@@ -232,33 +247,19 @@ class PlanningBalanceBlock : PromptBlock {
             return ""
         }
 
-        val balance =
-            when (context.config.behaviourProfile) {
-                BehaviourProfile.RAPID_PROTOTYPE ->
-                    listOf(
-                        "Build a production-capable MVP first.",
-                        "Keep architecture extensible with lightweight boundaries.",
-                        "Track hardening opportunities in a follow-up list.",
-                    )
-                BehaviourProfile.SECURITY_ENGINEER ->
-                    listOf(
-                        "Keep scope focused, but do not defer critical validation and access controls.",
-                        "Document minimum security controls required for first release.",
-                    )
-                else ->
-                    listOf(
-                        "Preserve delivery momentum while keeping design reversible.",
-                        "Separate immediate scope from future governance hardening.",
-                    )
+        val renderedConflicts =
+            conflicts.mapIndexed { index, conflict ->
+                """### Conflict ${index + 1}
+${conflict.summary}
+
+Recommended interpretation:
+${conflict.recommendations.joinToString("\n") { "- $it" }}"""
             }
 
         return """
-            ## Planning Balance
+            ## Conflict Detected
 
-            ${conflicts.joinToString("\n") { "- $it" }}
-
-            Recommended balance:
-            ${balance.joinToString("\n") { "- $it" }}
+            ${renderedConflicts.joinToString("\n\n")}
             """.trimIndent()
     }
 }

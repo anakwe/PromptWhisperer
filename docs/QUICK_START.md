@@ -42,6 +42,16 @@ The bottom workspace is the main product surface:
 - raw markdown mode (editable)
 - markdown preview mode
 - copy and export actions
+- `Hide Prompt` / `Show Prompt` toggle when you need more space to review clarifications or guardrails
+
+Generated prompts may include sections such as:
+- `Clarification Answers`
+- `Clarification-Driven Guidance`
+- `Conflict Detected`
+- `Implementation Considerations`
+- `Recommended Architecture`
+- `Engineering Trade-Offs`
+- `Suggested Delivery Priorities`
 
 ## 5) Save local artefact (optional)
 

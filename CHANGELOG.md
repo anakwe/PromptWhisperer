@@ -7,6 +7,7 @@ All notable changes to this project are documented here.
 ### Added
 - Two-stage workflow: request analysis followed by clarification answers before final prompt generation.
 - Dominant prompt workspace with metadata banner and generation state indicators.
+- Collapsible prompt output pane to reveal the full clarification and guardrail configuration area on demand.
 - Raw markdown + rendered markdown preview modes.
 - Prompt copy and markdown export actions from output workspace.
 - Dynamic clarification panel with inline answer controls.
@@ -15,29 +16,35 @@ All notable changes to this project are documented here.
 - New `PromptMode` model for mode-aware generation behavior.
 - Composable prompt block architecture via `PromptBlock` implementations.
 - Lightweight rule-based `InferenceEngine` for synthesis quality.
+- Clarification-driven guidance synthesis that converts answers into implementation constraints and delivery guidance.
+- Conflict detection section for mismatches between original request intent and clarification answers.
 - New reasoning sections in generated prompts:
+  - `Clarification-Driven Guidance`
+  - `Conflict Detected`
   - `Implementation Considerations`
   - `Recommended Architecture`
-  - `Planning Balance`
   - `Engineering Trade-Offs`
   - `Suggested Delivery Priorities`
 - Comprehensive security filtering tests for secret-like file exclusions and safe-file retention.
 - Context scanner whitelist tests to validate small-file preview safety boundaries.
 - `docs/SECURITY_MODEL.md` for explicit security architecture documentation.
+- `docs/RELEASE_PROCESS.md` for versioning, packaging, checksum, and GitHub release steps.
+- Example README screenshots under `docs/images/examples/flappy-facebook-game/`.
 - OSS community templates:
   - bug report
   - feature request
   - behaviour profile suggestion
-  - security issue report
+  - security concern report
   - pull request template
 
 ### Changed
 - Repositioned product identity from template generator to implementation planning tool.
-- README rewritten with philosophy, trust model, roadmap, and screenshot placeholders.
+- README rewritten with philosophy, trust model, roadmap, polished screenshots, and release documentation links.
 - `docs/QUICK_START.md`, `docs/ARCHITECTURE.md`, and `CONTRIBUTING.md` upgraded for production OSS quality.
 - Prompt generation now integrates profile/depth/mode/clarification context more explicitly.
 - Clarification answers are synthesized into engineering implications instead of being treated as plain key-value metadata.
 - Behaviour profiles now produce stronger reasoning voice differences (e.g., Security Engineer threat-model-first, Rapid Prototype MVP-coach).
+- GitHub community templates migrated to concise Markdown issue templates and a streamlined pull request template.
 
 ### Security
 - Strengthened visible trust boundaries in docs and workflow messaging (local-first, no hidden network/telemetry).

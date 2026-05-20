@@ -109,4 +109,104 @@ class PromptClarificationTests {
         assertTrue(prompt.contains("Prioritize a playable, testable MVP slice first."))
         assertTrue(prompt.contains("Deliver playable MVP slice before optional architecture hardening"))
     }
+
+    @Test
+    fun `conflicts are rendered when request and clarification answers disagree`() {
+        val config =
+            PromptSessionConfig(
+                promptMode = PromptMode.STANDARD,
+                behaviourProfile = BehaviourProfile.BALANCED_ENGINEER,
+                promptDepth = PromptDepth.STANDARD,
+                clarificationQuestions =
+                    listOf(
+                        ClarificationQuestion(
+                            id = "q_score_tracking",
+                            question = "Should score tracking be local-only or persisted?",
+                            category = ClarificationCategory.REQUIREMENTS,
+                            answer = "Local-only",
+                        ),
+                    ),
+            )
+
+        val prompt = builder.buildImplementationPrompt("Build a Facebook game with persisted leaderboard", config)
+
+        assertTrue(prompt.contains("## Conflict Detected"))
+        assertTrue(prompt.contains("persisted/backend leaderboard functionality"))
+        assertTrue(prompt.contains("Recommended interpretation:"))
+        assertTrue(prompt.contains("Do not add backend leaderboard persistence unless explicitly reconfirmed."))
+    }
+
+    @Test
+    fun `local only leaderboard answer becomes implementation guidance`() {
+        val config =
+            PromptSessionConfig(
+                clarificationQuestions =
+                    listOf(
+                        ClarificationQuestion(
+                            id = "q_score_tracking",
+                            question = "Should score tracking be local-only or persisted?",
+                            category = ClarificationCategory.REQUIREMENTS,
+                            answer = "Local-only",
+                        ),
+                    ),
+            )
+
+        val prompt = builder.buildImplementationPrompt("Build a browser game", config)
+
+        assertTrue(prompt.contains("## Clarification-Driven Guidance"))
+        assertTrue(prompt.contains("avoid backend database/storage services"))
+        assertTrue(prompt.contains("localStorage or IndexedDB"))
+        assertTrue(prompt.contains("do not provide cross-device persistence or strong competitive integrity"))
+    }
+
+    @Test
+    fun `both keyboard and touch answer adds input abstraction and tests guidance`() {
+        val config =
+            PromptSessionConfig(
+                clarificationQuestions =
+                    listOf(
+                        ClarificationQuestion(
+                            id = "q_controls",
+                            question = "Should keyboard controls, touch controls, or both be supported?",
+                            category = ClarificationCategory.UX,
+                            answer = "Both",
+                        ),
+                    ),
+            )
+
+        val prompt = builder.buildImplementationPrompt("Build a flappy style web game", config)
+
+        assertTrue(prompt.contains("input abstraction layer"))
+        assertTrue(prompt.contains("desktop keyboard flows and mobile touch flows"))
+    }
+
+    @Test
+    fun `facebook auth and production docs answers add delivery guidance`() {
+        val config =
+            PromptSessionConfig(
+                clarificationQuestions =
+                    listOf(
+                        ClarificationQuestion(
+                            id = "q_scope",
+                            question = "What delivery scope do you want?",
+                            category = ClarificationCategory.REQUIREMENTS,
+                            answer = "Production-ready",
+                        ),
+                        ClarificationQuestion(
+                            id = "q_docs",
+                            question = "Should deployment or usage instructions be included?",
+                            category = ClarificationCategory.DOCUMENTATION,
+                            answer = "README + deployment guide",
+                        ),
+                    ),
+            )
+
+        val prompt = builder.buildImplementationPrompt("Add Facebook auth to the web app", config)
+
+        assertTrue(prompt.contains("Facebook Login SDK"))
+        assertTrue(prompt.contains("Minimize requested Facebook scopes"))
+        assertTrue(prompt.contains("Include deployment notes for target environments"))
+        assertTrue(prompt.contains("error handling and user-visible failure recovery"))
+        assertTrue(prompt.contains("README and a deployment guide"))
+    }
 }

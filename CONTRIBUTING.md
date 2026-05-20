@@ -52,8 +52,16 @@ When changing UI:
 1. Create a focused branch.
 2. Implement change with tests/docs updates as needed.
 3. Run local validation.
-4. Open PR using template.
-5. Address review feedback.
+4. Open an issue or discussion first when the change needs product/UX direction.
+5. Open PR using template.
+6. Address review feedback.
+
+Use the GitHub templates under `.github/ISSUE_TEMPLATE/` for:
+
+- bug reports
+- feature requests
+- security concerns
+- behaviour profile suggestions
 
 ## Pull Request Checklist
 
@@ -78,3 +86,8 @@ Examples:
 Do not open public issues for active vulnerabilities.
 
 Report privately via `opensource@anakwe.org`.
+
+## Release Process
+
+If you are preparing a release, follow `docs/RELEASE_PROCESS.md` for version bumping, changelog updates, packaging, checksum generation, tagging, and GitHub release steps.
+

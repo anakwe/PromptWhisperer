@@ -1,36 +1,39 @@
 ## Summary
 
-Describe the change and the engineering outcome.
+Describe the change and intended outcome.
 
-## Type of Change
+## Testing performed
 
-- [ ] Feature
-- [ ] Fix
-- [ ] Refactor
-- [ ] Docs
-- [ ] Chore
+- [ ] `./gradlew test`
+- [ ] `./gradlew build`
+- [ ] Manual UI verification
+- [ ] Not applicable
 
-## Prompt Whisperer Quality Checks
+Details:
 
-- [ ] Preserves local-first / no hidden telemetry constraints
-- [ ] Keeps generated prompt workspace dominant and clear
-- [ ] Keeps two-stage clarification workflow intact
-- [ ] Updates docs for user-visible behavior changes
-- [ ] Avoids unrelated file churn
+```text
 
-## Validation
-
-List commands or tests you ran.
-
-```bash
-./gradlew clean test
 ```
 
-## Screenshots (if UI change)
+## Security impact
 
-Add before/after screenshots if applicable.
+- [ ] No security impact
+- [ ] Security-sensitive change
+- [ ] Updates security-related docs or safeguards
 
-## Notes for Reviewers
+Notes:
 
-Any risks, assumptions, or follow-up items.
+```text
+
+```
+
+## Documentation updated
+
+- [ ] No documentation update needed
+- [ ] README updated
+- [ ] User/developer docs updated
+
+## Screenshots (if UI changed)
+
+Add before/after screenshots or short notes if relevant.
 

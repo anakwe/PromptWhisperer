@@ -65,6 +65,7 @@ class PromptWhispererPanelV3(private val project: Project) {
     private val analyseButton = JButton("Analyse Request")
     private val clearQuestionsButton = JButton("Clear Questions")
     private val generateButton = JButton("Generate Prompt")
+    private val togglePromptPanelButton = JButton("Hide Prompt")
     private val saveButton = JButton("Save Artefact")
     private val resetButton = JButton("Reset")
 
@@ -92,6 +93,10 @@ class PromptWhispererPanelV3(private val project: Project) {
     private val profileInfoLabel = JLabel()
     private val depthInfoLabel = JLabel()
     private val workflowStateLabel = JLabel("Stage 1: Enter your request and click Analyse Request")
+
+    private lateinit var mainSplitPane: JSplitPane
+    private var isPromptPanelCollapsed = false
+    private var expandedDividerLocation = -1
 
     private var sessionConfig = PromptSessionConfig()
     private var didAnalyseRequest = false
@@ -121,7 +126,7 @@ class PromptWhispererPanelV3(private val project: Project) {
                 add(buildLogPanel())
             }
 
-        val splitPane =
+        mainSplitPane =
             JSplitPane(JSplitPane.VERTICAL_SPLIT).apply {
                 topComponent = JBScrollPane(topPanel)
                 bottomComponent = promptOutputPanel.component
@@ -130,7 +135,7 @@ class PromptWhispererPanelV3(private val project: Project) {
                 border = BorderFactory.createEmptyBorder()
             }
 
-        component.add(splitPane, BorderLayout.CENTER)
+        component.add(mainSplitPane, BorderLayout.CENTER)
     }
 
     private fun buildHeaderPanel(): JPanel {
@@ -249,6 +254,7 @@ class PromptWhispererPanelV3(private val project: Project) {
             add(analyseButton)
             add(clearQuestionsButton)
             add(generateButton)
+            add(togglePromptPanelButton)
             add(saveButton)
             add(resetButton)
         }
@@ -298,6 +304,10 @@ class PromptWhispererPanelV3(private val project: Project) {
 
         generateButton.addActionListener {
             generateFinalPrompt()
+        }
+
+        togglePromptPanelButton.addActionListener {
+            togglePromptPanelVisibility()
         }
 
         clearQuestionsButton.addActionListener {
@@ -419,6 +429,7 @@ class PromptWhispererPanelV3(private val project: Project) {
             )
 
         val prompt = promptBuilder.buildImplementationPrompt(task, sessionConfig)
+        ensurePromptPanelVisible()
         promptOutputPanel.setPrompt(
             promptText = prompt,
             profileName = profile.displayName,
@@ -458,6 +469,7 @@ class PromptWhispererPanelV3(private val project: Project) {
             )
         val prompt = troubleshootingService.generateTroubleshootingPrompt(state, failedCommand)
 
+        ensurePromptPanelVisible()
         promptOutputPanel.setPrompt(
             promptText = prompt,
             profileName = BehaviourProfile.TROUBLESHOOTER.displayName,
@@ -530,6 +542,46 @@ class PromptWhispererPanelV3(private val project: Project) {
         if (!keepLog) {
             workflowStateLabel.text = "Clarification questions cleared. You can analyse again or generate directly."
             workflowStateLabel.foreground = Color(153, 102, 0)
+        }
+    }
+
+    private fun togglePromptPanelVisibility() {
+        if (!::mainSplitPane.isInitialized) {
+            return
+        }
+
+        if (isPromptPanelCollapsed) {
+            isPromptPanelCollapsed = false
+            togglePromptPanelButton.text = "Hide Prompt"
+            val restoreLocation =
+                if (expandedDividerLocation > 0) {
+                    expandedDividerLocation
+                } else {
+                    (component.height * 0.42).toInt()
+                }
+            SwingUtilities.invokeLater {
+                mainSplitPane.dividerLocation = restoreLocation
+                mainSplitPane.revalidate()
+                mainSplitPane.repaint()
+            }
+            log("Prompt panel expanded.")
+            return
+        }
+
+        expandedDividerLocation = mainSplitPane.dividerLocation
+        isPromptPanelCollapsed = true
+        togglePromptPanelButton.text = "Show Prompt"
+        SwingUtilities.invokeLater {
+            mainSplitPane.setDividerLocation(1.0)
+            mainSplitPane.revalidate()
+            mainSplitPane.repaint()
+        }
+        log("Prompt panel collapsed to show full controls and guardrails.")
+    }
+
+    private fun ensurePromptPanelVisible() {
+        if (isPromptPanelCollapsed) {
+            togglePromptPanelVisibility()
         }
     }
 

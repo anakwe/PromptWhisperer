@@ -19,7 +19,8 @@ class InferenceEngine {
         return PromptInference(
             voiceFrame = inferVoiceFrame(config.behaviourProfile),
             voiceInstructions = inferVoiceInstructions(config.behaviourProfile),
-            conflicts = detectConflicts(config),
+            conflicts = detectConflicts(task, config),
+            clarificationGuidance = inferClarificationGuidance(task, config),
             architectureConcerns = inferArchitectureConcerns(task, config),
             operationalConcerns = inferOperationalConcerns(task, config),
             securityConcerns = inferSecurityConcerns(task, config),
@@ -30,29 +31,182 @@ class InferenceEngine {
     }
 
     /**
-     * Detects tensions between selected profile and prompt depth.
+     * Detects tensions between original request intent and clarification/session constraints.
      */
-    fun detectConflicts(config: PromptSessionConfig): List<String> {
-        val conflicts = mutableListOf<String>()
+    fun detectConflicts(
+        task: String,
+        config: PromptSessionConfig,
+    ): List<ConflictInsight> {
+        val conflicts = mutableListOf<ConflictInsight>()
         val profile = config.behaviourProfile
         val depth = config.promptDepth
+        val lowerTask = task.lowercase()
+        val answers = answers(config.clarificationQuestions)
+
+        val scoreTracking = answers["q_score_tracking"].orEmpty()
+        if (containsAny(lowerTask, "persisted", "persistent", "leaderboard", "backend", "database") &&
+            containsAny(scoreTracking.lowercase(), "local", "local-only")
+        ) {
+            conflicts.add(
+                ConflictInsight(
+                    summary =
+                        "The initial request points to persisted/backend leaderboard functionality, but clarifications specify local-only score tracking.",
+                    recommendations =
+                        listOf(
+                            "Implement local browser persistence for the MVP.",
+                            "Do not add backend leaderboard persistence unless explicitly reconfirmed.",
+                            "Document backend persistence as a future enhancement.",
+                        ),
+                ),
+            )
+        }
+
+        val scopeAnswer = answers["q_scope"].orEmpty().lowercase()
+        if (containsAny(lowerTask, "production", "production-ready", "hardened", "enterprise-grade") &&
+            containsAny(scopeAnswer, "prototype", "rapid", "mvp")
+        ) {
+            conflicts.add(
+                ConflictInsight(
+                    summary =
+                        "The request asks for production-ready delivery, while clarification scope prefers prototype/MVP speed.",
+                    recommendations =
+                        listOf(
+                            "Deliver a narrow MVP slice first with explicit production gaps.",
+                            "Treat security hardening, resilience, and observability as a planned follow-up phase.",
+                            "Capture production-readiness criteria that must be met before release.",
+                        ),
+                ),
+            )
+        }
+
+        val frontendApproach = answers["q_frontend_approach"].orEmpty().lowercase()
+        val suggestedFramework = config.requestAnalysis?.suggestedFramework.orEmpty().lowercase()
+        val noFrameworkRequested =
+            containsAny(frontendApproach, "plain html", "no framework", "vanilla", "none") ||
+                containsAny(lowerTask, "no framework", "vanilla js", "plain javascript")
+        val frameworkRecommended = suggestedFramework.isNotBlank() && !containsAny(suggestedFramework, "vanilla")
+        if (noFrameworkRequested && frameworkRecommended) {
+            conflicts.add(
+                ConflictInsight(
+                    summary =
+                        "Clarifications prefer no framework, but analysis recommends ${config.requestAnalysis?.suggestedFramework}.",
+                    recommendations =
+                        listOf(
+                            "Follow the no-framework preference for the initial implementation.",
+                            "Only introduce a framework if concrete requirements justify the added complexity.",
+                            "Note the recommended framework as an optional future refactor path.",
+                        ),
+                ),
+            )
+        }
 
         if (profile == BehaviourProfile.RAPID_PROTOTYPE && depth == PromptDepth.ENTERPRISE) {
             conflicts.add(
-                "The selected Behaviour Profile prioritises rapid MVP delivery, while Enterprise depth introduces governance and operational rigor.",
+                ConflictInsight(
+                    summary =
+                        "The selected Behaviour Profile prioritises rapid MVP delivery, while Enterprise depth introduces governance and operational rigor.",
+                    recommendations =
+                        listOf(
+                            "Keep first delivery focused on a working vertical slice.",
+                            "Add lightweight documentation and governance checkpoints without blocking implementation.",
+                            "Separate immediate build tasks from enterprise hardening backlog.",
+                        ),
+                ),
             )
         }
         if (profile == BehaviourProfile.MINIMALIST && depth == PromptDepth.ENTERPRISE) {
             conflicts.add(
-                "Minimalist profile favors lean implementation, but Enterprise depth expects expanded architecture, controls, and documentation.",
+                ConflictInsight(
+                    summary =
+                        "Minimalist profile favors lean implementation, but Enterprise depth expects expanded architecture, controls, and documentation.",
+                    recommendations =
+                        listOf(
+                            "Implement the smallest enterprise-safe increment first.",
+                            "Prioritize mandatory controls and defer optional process overhead.",
+                            "Document what is intentionally deferred to maintain momentum.",
+                        ),
+                ),
             )
         }
         if (profile == BehaviourProfile.SECURITY_ENGINEER && depth == PromptDepth.MINIMAL) {
             conflicts.add(
-                "Security Engineer profile expects strong safeguards, while Minimal depth may under-specify validation and threat controls.",
+                ConflictInsight(
+                    summary =
+                        "Security Engineer profile expects strong safeguards, while Minimal depth may under-specify validation and threat controls.",
+                    recommendations =
+                        listOf(
+                            "Preserve minimal output size but keep critical threat and validation guidance explicit.",
+                            "Include must-have security checks even if broader architecture detail is reduced.",
+                        ),
+                ),
             )
         }
+
+        val authRequested = containsAny(lowerTask, "auth", "authentication", "login", "oauth", "facebook")
+        val threatModelAnswer = answers["q_threat_model"]
+        if (authRequested && (threatModelAnswer == null || threatModelAnswer.equals("Not specified", ignoreCase = true))) {
+            conflicts.add(
+                ConflictInsight(
+                    summary =
+                        "Authentication is requested, but no threat model is specified in clarifications.",
+                    recommendations =
+                        listOf(
+                            "Assume a conservative baseline threat model for initial implementation.",
+                            "Limit auth scope and permissions to least privilege by default.",
+                            "Flag threat model definition as a required follow-up before production rollout.",
+                        ),
+                ),
+            )
+        }
+
         return conflicts
+    }
+
+    /**
+     * Converts concrete clarification answers into implementation planning guidance.
+     */
+    fun inferClarificationGuidance(
+        task: String,
+        config: PromptSessionConfig,
+    ): List<String> {
+        val guidance = mutableListOf<String>()
+        val lowerTask = task.lowercase()
+        val answers = answers(config.clarificationQuestions)
+
+        val scoreTracking = answers["q_score_tracking"].orEmpty().lowercase()
+        if (containsAny(scoreTracking, "local", "local-only")) {
+            guidance.add("Treat leaderboard persistence as local-only for MVP and avoid backend database/storage services.")
+            guidance.add("Use browser-local persistence (for example localStorage or IndexedDB) behind a small persistence adapter.")
+            guidance.add("Document that local-only scores do not provide cross-device persistence or strong competitive integrity in MVP.")
+        }
+
+        val controls = answers["q_controls"].orEmpty().lowercase()
+        if (containsAny(controls, "both") || (containsAny(controls, "keyboard") && containsAny(controls, "touch"))) {
+            guidance.add("Implement an input abstraction layer so gameplay actions map consistently across keyboard and touch events.")
+            guidance.add("Define explicit acceptance tests for desktop keyboard flows and mobile touch flows, including pause/restart interactions.")
+        }
+
+        val facebookAuthRequested =
+            containsAny(lowerTask, "facebook auth", "facebook login") ||
+                (containsAny(lowerTask, "facebook") && containsAny(lowerTask, "auth", "authentication", "login"))
+        if (facebookAuthRequested) {
+            guidance.add("Integrate with Facebook Login SDK and define callback/redirect handling before wiring app-specific session state.")
+            guidance.add("Minimize requested Facebook scopes to least privilege and justify any non-basic permission in documentation.")
+        }
+
+        val scope = answers["q_scope"].orEmpty().lowercase()
+        if (containsAny(scope, "production-ready") || containsAny(lowerTask, "production-ready", "production")) {
+            guidance.add("Include deployment notes for target environments with explicit configuration and rollout assumptions.")
+            guidance.add("Treat robust error handling and user-visible failure recovery paths as required, not optional polish.")
+            guidance.add("Set verification expectations: run automated checks, capture manual smoke tests, and document release-readiness criteria.")
+        }
+
+        val docs = answers["q_docs"].orEmpty().lowercase()
+        if (containsAny(docs, "readme + deployment guide", "deployment guide")) {
+            guidance.add("Documentation deliverables must include an updated README and a deployment guide with prerequisites, run steps, and rollback notes.")
+        }
+
+        return guidance.distinct()
     }
 
     /**
@@ -335,6 +489,11 @@ class InferenceEngine {
     private fun answers(questions: List<ClarificationQuestion>): Map<String, String> {
         return questions.associate { it.id to it.resolvedAnswer() }
     }
+
+    private fun containsAny(
+        text: String,
+        vararg needles: String,
+    ): Boolean = needles.any { needle -> text.contains(needle, ignoreCase = true) }
 }
 
 /**
@@ -343,7 +502,8 @@ class InferenceEngine {
 data class PromptInference(
     val voiceFrame: String,
     val voiceInstructions: List<String>,
-    val conflicts: List<String>,
+    val conflicts: List<ConflictInsight>,
+    val clarificationGuidance: List<String>,
     val architectureConcerns: List<String>,
     val operationalConcerns: List<String>,
     val securityConcerns: List<String>,
@@ -351,3 +511,9 @@ data class PromptInference(
     val deliveryPriorities: List<String>,
     val recommendedArchitecture: List<String>,
 )
+
+data class ConflictInsight(
+    val summary: String,
+    val recommendations: List<String>,
+)
+
