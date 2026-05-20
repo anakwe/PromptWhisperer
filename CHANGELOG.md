@@ -21,6 +21,8 @@ All notable changes to this project are documented here.
   - `Planning Balance`
   - `Engineering Trade-Offs`
   - `Suggested Delivery Priorities`
+- Comprehensive security filtering tests for secret-like file exclusions and safe-file retention.
+- Context scanner whitelist tests to validate small-file preview safety boundaries.
 - `docs/SECURITY_MODEL.md` for explicit security architecture documentation.
 - OSS community templates:
   - bug report
@@ -39,4 +41,5 @@ All notable changes to this project are documented here.
 
 ### Security
 - Strengthened visible trust boundaries in docs and workflow messaging (local-first, no hidden network/telemetry).
+- Verified exclusion of secret-like files from prompt context across `.env*`, credential files, key material, and Terraform state artifacts.
 

@@ -143,6 +143,20 @@ See also:
 - `SECURITY.md`
 - `docs/SECURITY_MODEL.md`
 
+## Security Filtering Coverage
+
+Prompt Whisperer includes comprehensive tests that verify secret-like files are excluded from prompt context.
+
+Covered blocked patterns include:
+- `.env`, `.env.local`, `.env.production`
+- `secrets.yaml`, `config/secrets.yaml`
+- `credentials.json`, `aws/credentials`
+- `prod.tfvars`, `terraform.tfstate`, `terraform.tfstate.backup`
+- `private.key`, `server.pem`, `keystore.jks`, `cert.p12`
+- `id_rsa`, `id_ed25519`
+
+Safe metadata files are also validated to remain available where appropriate.
+
 ## Installation
 
 ### Run in IntelliJ sandbox

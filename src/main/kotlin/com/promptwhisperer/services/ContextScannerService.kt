@@ -4,6 +4,26 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import java.nio.charset.StandardCharsets
 
+internal val smallFileWhitelist =
+    setOf(
+        "readme.md",
+        "build.gradle",
+        "build.gradle.kts",
+        "pom.xml",
+        "package.json",
+        "pyproject.toml",
+        "requirements.txt",
+        "go.mod",
+        "cargo.toml",
+        "dockerfile",
+        "docker-compose.yml",
+    )
+
+internal fun isWhitelistedSmallFile(fileName: String): Boolean {
+    val normalized = fileName.lowercase()
+    return smallFileWhitelist.any { normalized.contains(it) }
+}
+
 /**
  * SafeProjectContext contains metadata and small file contents that are explicitly allowed.
  * Avoids secrets and large files.
@@ -81,9 +101,7 @@ class ContextScannerServiceImpl : ContextScannerService {
                 }
             collected.add(rel)
             val name = vf.name.lowercase()
-            val whitelist =
-                setOf("readme.md", "build.gradle", "build.gradle.kts", "pom.xml", "package.json", "pyproject.toml", "requirements.txt", "go.mod", "cargo.toml", "dockerfile", "docker-compose.yml")
-            if (whitelist.any { name.contains(it) }) {
+            if (isWhitelistedSmallFile(name)) {
                 try {
                     val length = vf.length
                     if (length in 1..maxSmallFileBytes) {

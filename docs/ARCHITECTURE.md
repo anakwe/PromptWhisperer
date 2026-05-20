@@ -93,6 +93,9 @@ This block-based design avoids giant template strings and supports extension wit
 - No hidden prompt submission.
 - No automatic code modification.
 - Prompt artefacts are explicit user action.
+- Context safety is enforced in two layers:
+  - scanner whitelist for small-file previews (`ContextScannerService`)
+  - secret-like file exclusion filter (`SecurityFilterService`)
 
 See:
 - `SECURITY.md`
