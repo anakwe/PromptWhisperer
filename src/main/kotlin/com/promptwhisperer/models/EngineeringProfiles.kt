@@ -79,6 +79,8 @@ enum class BehaviourProfile(
         priorityAreas = listOf("simplicity", "minimal dependencies", "conciseness", "essentials only")
     );
 
+    override fun toString(): String = displayName
+
     companion object {
         fun default(): BehaviourProfile = BALANCED_ENGINEER
     }
@@ -253,6 +255,8 @@ enum class PromptDepth(val displayName: String, val description: String, val det
         description = "Architecture, operations, governance, and compliance.",
         detailMultiplier = 2.0f
     );
+
+    override fun toString(): String = displayName
 
     companion object {
         fun default(): PromptDepth = STANDARD

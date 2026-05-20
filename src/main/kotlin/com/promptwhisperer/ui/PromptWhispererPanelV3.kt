@@ -6,13 +6,19 @@ import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.JBTextField
 import com.promptwhisperer.models.BehaviourProfile
 import com.promptwhisperer.models.PromptDepth
+import com.promptwhisperer.models.PromptMode
 import com.promptwhisperer.models.PromptSessionConfig
-import com.promptwhisperer.models.ClarificationQuestion
 import com.promptwhisperer.services.ArtefactPersistenceServiceImpl
 import com.promptwhisperer.services.BehaviourProfileServiceImpl
 import com.promptwhisperer.services.ClarificationServiceImpl
+import com.promptwhisperer.services.DiagnosticPhase
+import com.promptwhisperer.services.FailedCommand
 import com.promptwhisperer.services.PromptBuilderImpl
+import com.promptwhisperer.services.TroubleshootingState
 import com.promptwhisperer.services.TroubleshootingServiceImpl
+import com.promptwhisperer.ui.components.ClarificationAnswersPanel
+import com.promptwhisperer.ui.components.GuardrailSelectionPanel
+import com.promptwhisperer.ui.components.PromptOutputPanel
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.Color
@@ -20,83 +26,45 @@ import java.awt.Dimension
 import java.awt.Font
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
+import java.io.File
 import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JComboBox
+import javax.swing.JFileChooser
 import javax.swing.JLabel
 import javax.swing.JPanel
-import javax.swing.JSeparator
-import javax.swing.UIManager
+import javax.swing.JSplitPane
+import javax.swing.SwingUtilities
 
 /**
- * Comprehensive Prompt Whisperer UI Panel V3.
- *
- * Includes:
- * - 5 generation modes (Standard, Architecture, Debugging, Security, Testing)
- * - 9 behaviour profiles
- * - 4 depth levels
- * - Guardrail toggles
- * - Multi-stage workflow (analyse → clarifications → generate)
- * - Troubleshooting Mode (evidence-based debugging)
- *
- * Layout:
- * - Header + help
- * - Mode selector
- * - Configuration (profile, depth)
- * - Task input or Troubleshooting input (card layout)
- * - Clarifications (dynamic, shown after analysis)
- * - Large central prompt preview
- * - Activity log (secondary)
+ * Prompt Whisperer V3 panel focused on implementation planning quality.
  */
 class PromptWhispererPanelV3(private val project: Project) {
     val component: JPanel = JPanel(BorderLayout())
 
-    // ─── Mode selector (6 modes total, including Troubleshooting) ─────────────
-    private val modeSelector = JComboBox(
-        arrayOf(
-            "Standard Mode",
-            "Architecture Mode",
-            "Debugging Mode",
-            "Security Review Mode",
-            "Test Generation Mode",
-            "⚠  Troubleshooting Mode"
-        )
-    )
-
-    // ─── Configuration ────────────────────────────────────────────────────────
+    private val modeSelector = JComboBox(PromptMode.values())
     private val behaviourProfileSelector = JComboBox(BehaviourProfile.values())
     private val promptDepthSelector = JComboBox(PromptDepth.values())
 
-    // ─── Generation inputs ────────────────────────────────────────────────────
-    private val taskInputArea = JBTextArea(6, 50).apply {
+    private val taskInputArea = JBTextArea(6, 60).apply {
         lineWrap = true
         wrapStyleWord = true
-        text = "Example: Build a simple demo website with an embedded video, responsive layout, and README instructions."
+        text = "Example: Build a Flappy Bird style web game with responsive controls and deployment notes."
     }
 
-    // ─── Troubleshooting inputs ───────────────────────────────────────────────
-    private val tsFailedCommandField = JBTextField().apply {
-        toolTipText = "Exact command that failed"
-    }
-    private val tsTechnologyField = JBTextField().apply {
-        toolTipText = "Technology: gradle, npm, docker, terraform, etc."
-    }
-    private val tsErrorOutputArea = JBTextArea(6, 40).apply {
+    private val tsFailedCommandField = JBTextField()
+    private val tsTechnologyField = JBTextField()
+    private val tsErrorOutputArea = JBTextArea(6, 60).apply {
         lineWrap = true
         wrapStyleWord = true
-        toolTipText = "Paste error output or stack trace"
     }
-    private val tsMaterialChangeField = JBTextField().apply {
-        toolTipText = "What changed since last failure?"
-    }
+    private val tsMaterialChangeField = JBTextField()
 
-    // ─── Output areas ─────────────────────────────────────────────────────────
-    private val promptPreview = JBTextArea().apply {
-        isEditable = true
-        lineWrap = true
-        wrapStyleWord = true
-        font = Font(Font.MONOSPACED, Font.PLAIN, 12)
-    }
+    private val analyseButton = JButton("Analyse Request")
+    private val clearQuestionsButton = JButton("Clear Questions")
+    private val generateButton = JButton("Generate Prompt")
+    private val saveButton = JButton("Save Artefact")
+    private val resetButton = JButton("Reset")
 
     private val activityLog = JBTextArea().apply {
         isEditable = false
@@ -105,325 +73,461 @@ class PromptWhispererPanelV3(private val project: Project) {
         font = Font(Font.MONOSPACED, Font.PLAIN, 11)
     }
 
-    // ─── Buttons ──────────────────────────────────────────────────────────────
-    private val analyseButton = JButton("🔍  Analyse Request")
-    private val generateButton = JButton("▶  Generate Prompt")
-    private val copyButton = JButton("⎘  Copy Prompt")
-    private val saveButton = JButton("💾  Save Artefact")
-    private val resetButton = JButton("↺  Reset")
+    private val clarificationPanel = ClarificationAnswersPanel()
+    private val guardrailPanel = GuardrailSelectionPanel(BehaviourProfileServiceImpl())
+    private val promptOutputPanel = PromptOutputPanel()
 
-    private val tsAnalyseButton = JButton("🔍  Analyse Failure")
-    private val tsCopyButton = JButton("⎘  Copy Prompt")
-    private val tsResetButton = JButton("↺  Reset")
-
-    // ─── Services ─────────────────────────────────────────────────────────────
     private val clarificationService = ClarificationServiceImpl()
     private val behaviourProfileService = BehaviourProfileServiceImpl()
     private val promptBuilder = PromptBuilderImpl()
     private val troubleshootingService = TroubleshootingServiceImpl()
     private val artefactPersistenceService = ArtefactPersistenceServiceImpl(project)
 
-    private var sessionConfig = PromptSessionConfig()
-    private var currentClarifications: List<ClarificationQuestion> = emptyList()
-
-    // ─── Card layout for generation vs troubleshooting ────────────────────────
     private val cardLayout = CardLayout()
-    private val cardPanel = JPanel(cardLayout)
+    private val inputCard = JPanel(cardLayout)
+
+    private val profileInfoLabel = JLabel()
+    private val depthInfoLabel = JLabel()
+    private val workflowStateLabel = JLabel("Stage 1: Enter your request and click Analyse Request")
+
+    private var sessionConfig = PromptSessionConfig()
+    private var didAnalyseRequest = false
 
     init {
         setupLayout()
         wireActions()
+        applyProfileDefaults()
+        promptOutputPanel.clear("No prompt generated yet. Describe a task and click Analyse Request.")
     }
 
     private fun setupLayout() {
-        clearPrompt()
+        modeSelector.renderer = modeSelector.renderer
+        behaviourProfileSelector.toolTipText = "Behaviour profile defines implementation philosophy"
+        promptDepthSelector.toolTipText = "Prompt depth defines detail level"
 
-        // Build generation and troubleshooting cards
-        cardPanel.add(buildGenerationInputCard(), "generation")
-        cardPanel.add(buildTroubleshootingInputCard(), "troubleshooting")
+        val topPanel = JPanel().apply {
+            layout = javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS)
+            border = BorderFactory.createEmptyBorder(8, 8, 8, 8)
+            add(buildHeaderPanel())
+            add(buildControlsPanel())
+            add(buildInputCards())
+            add(clarificationPanel.component)
+            add(guardrailPanel.component)
+            add(buildActionPanel())
+            add(buildLogPanel())
+        }
 
-        // Header
-        val headerPanel = buildHeaderPanel()
+        val splitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT).apply {
+            topComponent = JBScrollPane(topPanel)
+            bottomComponent = promptOutputPanel.component
+            resizeWeight = 0.42
+            dividerSize = 8
+            border = BorderFactory.createEmptyBorder()
+        }
 
-        // Mode selector and configuration
-        val configPanel = buildConfigurationPanel()
-
-        // Top section (header + config + input card)
-        val topPanel = JPanel()
-        topPanel.layout = javax.swing.BoxLayout(topPanel, javax.swing.BoxLayout.Y_AXIS)
-        topPanel.border = BorderFactory.createEmptyBorder(8, 8, 4, 8)
-        topPanel.add(headerPanel)
-        topPanel.add(JSeparator())
-        topPanel.add(configPanel)
-        topPanel.add(cardPanel)
-
-        // Central: Large prompt preview
-        val previewPanel = JPanel(BorderLayout(0, 4))
-        previewPanel.border = BorderFactory.createEmptyBorder(0, 8, 4, 8)
-        val previewTitle = JLabel("📝 Generated Prompt")
-        previewTitle.font = previewTitle.font.deriveFont(Font.BOLD)
-        previewPanel.add(previewTitle, BorderLayout.NORTH)
-        previewPanel.add(JBScrollPane(promptPreview), BorderLayout.CENTER)
-
-        // Bottom: Control buttons
-        val controlPanel = buildControlPanel()
-
-        // Activity log (compact)
-        val logPanel = JPanel(BorderLayout(0, 2))
-        logPanel.border = BorderFactory.createEmptyBorder(0, 8, 8, 8)
-        val logTitle = JLabel("Activity Log")
-        logTitle.font = logTitle.font.deriveFont(Font.PLAIN, 10f)
-        logPanel.add(logTitle, BorderLayout.NORTH)
-        val logScroll = JBScrollPane(activityLog)
-        logScroll.preferredSize = Dimension(0, 80)
-        logPanel.add(logScroll, BorderLayout.CENTER)
-
-        val southPanel = JPanel(BorderLayout(0, 4))
-        southPanel.add(controlPanel, BorderLayout.NORTH)
-        southPanel.add(logPanel, BorderLayout.CENTER)
-
-        // Assemble main layout
-        component.add(JBScrollPane(topPanel), BorderLayout.NORTH)
-        component.add(previewPanel, BorderLayout.CENTER)
-        component.add(southPanel, BorderLayout.SOUTH)
+        component.add(splitPane, BorderLayout.CENTER)
     }
 
     private fun buildHeaderPanel(): JPanel {
         val panel = JPanel(BorderLayout())
+        val title = JLabel("Prompt Whisperer").apply {
+            font = font.deriveFont(Font.BOLD, 20f)
+        }
 
-        val titleLabel = JLabel("Prompt Whisperer")
-        titleLabel.font = titleLabel.font.deriveFont(Font.BOLD, 18f)
+        val subtitle = JLabel("Local-first engineering implementation planning for AI coding assistants").apply {
+            font = font.deriveFont(Font.PLAIN, 12f)
+            foreground = Color(110, 110, 110)
+        }
 
-        val subtitleLabel = JLabel("Design better implementation prompts for AI coding assistants.")
-        subtitleLabel.font = subtitleLabel.font.deriveFont(Font.PLAIN, 12f)
-        subtitleLabel.foreground = Color(120, 120, 120)
+        val textPanel = JPanel().apply {
+            layout = javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS)
+            add(title)
+            add(subtitle)
+        }
 
-        val textPanel = JPanel()
-        textPanel.layout = javax.swing.BoxLayout(textPanel, javax.swing.BoxLayout.Y_AXIS)
-        textPanel.add(titleLabel)
-        textPanel.add(subtitleLabel)
-
+        workflowStateLabel.foreground = Color(59, 89, 152)
         panel.add(textPanel, BorderLayout.WEST)
+        panel.add(workflowStateLabel, BorderLayout.EAST)
         return panel
     }
 
-    private fun buildConfigurationPanel(): JPanel {
-        val panel = JPanel()
-        panel.border = BorderFactory.createEmptyBorder(8, 0, 8, 0)
+    private fun buildControlsPanel(): JPanel {
+        val panel = JPanel(BorderLayout(8, 6)).apply {
+            border = BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color(220, 220, 220)),
+                BorderFactory.createEmptyBorder(8, 8, 8, 8)
+            )
+        }
 
-        panel.add(JLabel("Mode:"))
-        panel.add(modeSelector)
-        panel.add(JLabel("  Profile:"))
-        panel.add(behaviourProfileSelector)
-        panel.add(JLabel("  Depth:"))
-        panel.add(promptDepthSelector)
+        val selectors = JPanel().apply {
+            add(JLabel("Mode:"))
+            add(modeSelector)
+            add(JLabel("Profile:"))
+            add(behaviourProfileSelector)
+            add(JLabel("Depth:"))
+            add(promptDepthSelector)
+        }
 
+        val infoPanel = JPanel().apply {
+            layout = javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS)
+            profileInfoLabel.foreground = Color(45, 127, 84)
+            depthInfoLabel.foreground = Color(53, 97, 180)
+            add(profileInfoLabel)
+            add(depthInfoLabel)
+        }
+
+        panel.add(selectors, BorderLayout.NORTH)
+        panel.add(infoPanel, BorderLayout.CENTER)
         return panel
     }
 
-    private fun buildGenerationInputCard(): JPanel {
-        val panel = JPanel(BorderLayout())
-        panel.border = BorderFactory.createTitledBorder("Step 1: Describe What You Want")
-        panel.add(JBScrollPane(taskInputArea), BorderLayout.CENTER)
-        return panel
+    private fun buildInputCards(): JPanel {
+        val generationCard = JPanel(BorderLayout(0, 4)).apply {
+            border = BorderFactory.createTitledBorder("Stage 1: Describe the implementation goal")
+            add(JBScrollPane(taskInputArea), BorderLayout.CENTER)
+        }
+
+        val troubleshootingCard = JPanel().apply {
+            layout = javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS)
+            border = BorderFactory.createTitledBorder("Troubleshooting Input")
+
+            val row1 = JPanel(BorderLayout(8, 0)).apply {
+                add(JLabel("Failed command"), BorderLayout.WEST)
+                add(tsFailedCommandField, BorderLayout.CENTER)
+            }
+            val row2 = JPanel(BorderLayout(8, 0)).apply {
+                add(JLabel("Technology"), BorderLayout.WEST)
+                add(tsTechnologyField, BorderLayout.CENTER)
+            }
+            val row3 = JPanel(BorderLayout(8, 0)).apply {
+                add(JLabel("Error output"), BorderLayout.NORTH)
+                add(JBScrollPane(tsErrorOutputArea), BorderLayout.CENTER)
+                preferredSize = Dimension(0, 130)
+            }
+            val row4 = JPanel(BorderLayout(8, 0)).apply {
+                add(JLabel("Material change since last run"), BorderLayout.WEST)
+                add(tsMaterialChangeField, BorderLayout.CENTER)
+            }
+
+            add(row1)
+            add(row2)
+            add(row3)
+            add(row4)
+        }
+
+        inputCard.add(generationCard, PromptMode.STANDARD.name)
+        inputCard.add(generationCard, PromptMode.ARCHITECTURE.name)
+        inputCard.add(generationCard, PromptMode.DEBUGGING.name)
+        inputCard.add(generationCard, PromptMode.SECURITY_REVIEW.name)
+        inputCard.add(generationCard, PromptMode.TEST_GENERATION.name)
+        inputCard.add(troubleshootingCard, PromptMode.TROUBLESHOOTING.name)
+
+        return inputCard
     }
 
-    private fun buildTroubleshootingInputCard(): JPanel {
-        val panel = JPanel()
-        panel.layout = javax.swing.BoxLayout(panel, javax.swing.BoxLayout.Y_AXIS)
-        panel.border = BorderFactory.createTitledBorder("Troubleshooting Mode: Provide Failure Details")
-
-        val row1 = JPanel()
-        row1.add(JLabel("Failed command:"))
-        row1.add(tsFailedCommandField)
-
-        val row2 = JPanel()
-        row2.add(JLabel("Technology:"))
-        row2.add(tsTechnologyField)
-
-        val row3Row = JPanel(BorderLayout())
-        row3Row.add(JLabel("Error output:"), BorderLayout.WEST)
-        row3Row.add(JBScrollPane(tsErrorOutputArea), BorderLayout.CENTER)
-
-        val row4Row = JPanel()
-        row4Row.add(JLabel("Material change:"))
-        row4Row.add(tsMaterialChangeField)
-
-        panel.add(row1)
-        panel.add(row2)
-        panel.add(row3Row)
-        panel.add(row4Row)
-
-        return panel
+    private fun buildActionPanel(): JPanel {
+        return JPanel().apply {
+            border = BorderFactory.createEmptyBorder(8, 0, 2, 0)
+            add(analyseButton)
+            add(clearQuestionsButton)
+            add(generateButton)
+            add(saveButton)
+            add(resetButton)
+        }
     }
 
-    private fun buildControlPanel(): JPanel {
-        val panel = JPanel()
-        panel.border = BorderFactory.createEmptyBorder(8, 8, 8, 8)
-
-        panel.add(analyseButton)
-        panel.add(generateButton)
-        panel.add(copyButton)
-        panel.add(saveButton)
-        panel.add(resetButton)
-
-        return panel
+    private fun buildLogPanel(): JPanel {
+        return JPanel(BorderLayout(0, 4)).apply {
+            border = BorderFactory.createTitledBorder("Activity")
+            val scroll = JBScrollPane(activityLog).apply { preferredSize = Dimension(0, 90) }
+            add(scroll, BorderLayout.CENTER)
+        }
     }
 
     private fun wireActions() {
-        // Mode selector switches between generation and troubleshooting
         modeSelector.addActionListener {
-            if (modeSelector.selectedIndex == 5) { // Troubleshooting Mode
-                cardLayout.show(cardPanel, "troubleshooting")
-                analyseButton.text = "🔍  Analyse Failure"
-                generateButton.isVisible = false
-                behaviourProfileSelector.isEnabled = false
-                promptDepthSelector.isEnabled = false
+            val mode = selectedMode()
+            cardLayout.show(inputCard, mode.name)
+            val isTroubleshooting = mode == PromptMode.TROUBLESHOOTING
+            generateButton.isVisible = !isTroubleshooting
+            behaviourProfileSelector.isEnabled = !isTroubleshooting
+            promptDepthSelector.isEnabled = !isTroubleshooting
+            clearQuestions(keepLog = true)
+            workflowStateLabel.text = if (isTroubleshooting) {
+                "Troubleshooting mode: capture evidence, then analyse"
             } else {
-                cardLayout.show(cardPanel, "generation")
-                analyseButton.text = "🔍  Analyse Request"
-                generateButton.isVisible = true
-                behaviourProfileSelector.isEnabled = true
-                promptDepthSelector.isEnabled = true
+                "Stage 1: Enter your request and click Analyse Request"
             }
+            workflowStateLabel.foreground = Color(59, 89, 152)
         }
-        cardLayout.show(cardPanel, "generation")
 
-        // Analyse button
+        behaviourProfileSelector.addActionListener {
+            applyProfileDefaults()
+        }
+
+        promptDepthSelector.addActionListener {
+            updateDepthInfo()
+        }
+
         analyseButton.addActionListener {
-            if (modeSelector.selectedIndex == 5) {
-                // Troubleshooting mode analysis
-                analyzeTroubleshootingFailure()
+            if (selectedMode() == PromptMode.TROUBLESHOOTING) {
+                runTroubleshootingAnalysis()
             } else {
-                // Generation mode analysis
-                analyzeGenerationRequest()
+                runClarificationAnalysis()
             }
         }
 
-        // Generate button (generation modes only)
         generateButton.addActionListener {
-            val task = taskInputArea.text.trim()
-            if (task.isEmpty()) {
-                log("⚠  Enter a task description.")
-                return@addActionListener
-            }
-
-            val profile = behaviourProfileSelector.selectedItem as? BehaviourProfile ?: BehaviourProfile.default()
-            val depth = promptDepthSelector.selectedItem as? PromptDepth ?: PromptDepth.default()
-            val guardrails = behaviourProfileService.getDefaultGuardrailsForProfile(profile)
-
-            sessionConfig = PromptSessionConfig(
-                behaviourProfile = profile,
-                promptDepth = depth,
-                enabledGuardrails = guardrails
-            )
-
-            val prompt = promptBuilder.buildImplementationPrompt(task, sessionConfig)
-            setPrompt(prompt)
-            log("✅ Generated prompt (${profile.displayName}, ${depth.displayName}).")
+            generateFinalPrompt()
         }
 
-        // Copy button
-        copyButton.addActionListener {
-            val text = promptPreview.text.trim()
-            if (text.isEmpty() || text.startsWith("(No prompt")) {
-                log("⚠  Generate a prompt first.")
-                return@addActionListener
-            }
-            copyToClipboard(text)
-            log("✅ Copied to clipboard.")
+        clearQuestionsButton.addActionListener {
+            clearQuestions(keepLog = false)
+            log("Clarification questions cleared.")
         }
 
-        // Save button
         saveButton.addActionListener {
-            val text = promptPreview.text.trim()
-            if (text.isEmpty() || text.startsWith("(No prompt")) {
-                log("⚠  Generate a prompt before saving.")
-                return@addActionListener
-            }
-
-            try {
-                val artefact = artefactPersistenceService.savePromptArtefact(text, project)
-                log("✅ Saved: .prompt-whisperer/prompts/${artefact.filename}")
-            } catch (e: Exception) {
-                log("❌ Save failed: ${e.message ?: "Unknown error"}")
-            }
+            savePromptArtefact()
         }
 
-        // Reset button
         resetButton.addActionListener {
-            taskInputArea.text = ""
-            tsFailedCommandField.text = ""
-            tsTechnologyField.text = ""
-            tsErrorOutputArea.text = ""
-            tsMaterialChangeField.text = ""
-            clearPrompt()
-            activityLog.text = ""
-            log("Session reset.")
+            resetSession()
         }
+
+        guardrailPanel.setOnReset {
+            applyProfileDefaults()
+            log("Guardrails reset to recommended defaults.")
+        }
+
+        guardrailPanel.setOnSelectionChanged { count ->
+            promptOutputPanel.setState("Guardrails updated: $count enabled", Color(59, 89, 152))
+        }
+
+        promptOutputPanel.onCopy = { text ->
+            if (text.isBlank() || text.startsWith("No prompt generated yet")) {
+                log("Generate a prompt first before copying.")
+            } else {
+                copyToClipboard(text)
+                log("Prompt copied to clipboard.")
+                promptOutputPanel.setState("Prompt copied", Color(45, 127, 84))
+            }
+        }
+
+        promptOutputPanel.onExport = { text ->
+            exportPrompt(text)
+        }
+
+        applyProfileDefaults()
+        updateDepthInfo()
+        generateButton.isEnabled = true
     }
 
-    private fun analyzeGenerationRequest() {
+    private fun applyProfileDefaults() {
+        val profile = selectedProfile()
+        guardrailPanel.applyDefaults(profile)
+        profileInfoLabel.text = "Profile: ${profile.displayName} — ${profile.description}"
+        profileInfoLabel.toolTipText = behaviourProfileService.getProfileDescription(profile)
+        promptOutputPanel.setState("Profile selected: ${profile.displayName}", Color(45, 127, 84))
+    }
+
+    private fun updateDepthInfo() {
+        val depth = selectedDepth()
+        depthInfoLabel.text = "Depth: ${depth.displayName} — ${depth.description}"
+        promptOutputPanel.setState("Depth set: ${depth.displayName}", Color(53, 97, 180))
+    }
+
+    private fun runClarificationAnalysis() {
         val task = taskInputArea.text.trim()
-        if (task.isEmpty()) {
-            log("⚠  Enter a task description.")
+        if (task.isBlank()) {
+            workflowStateLabel.text = "Enter a task description before analysing."
+            workflowStateLabel.foreground = Color(153, 61, 61)
+            log("Enter a task description before analysing.")
             return
         }
-        log("🔍 Analysing request...")
-        currentClarifications = clarificationService.generateClarifications(task)
-        log("✅ Generated ${currentClarifications.size} clarification questions.")
+
+        if (clarificationPanel.hasQuestions()) {
+            log("Existing clarification questions replaced with a new analysis for the current task.")
+        }
+
+        val profile = selectedProfile()
+        val mode = selectedMode()
+        val questions = clarificationService.generateClarifications(task, profile, mode)
+        clarificationPanel.setQuestions(questions)
+        didAnalyseRequest = true
+
+        workflowStateLabel.text = "Stage 2: Answer clarification questions, then click Generate Prompt"
+        workflowStateLabel.foreground = Color(59, 89, 152)
+        generateButton.isEnabled = true
+        log("Analysis complete: ${questions.size} clarification questions generated.")
+        if (questions.isNotEmpty()) {
+            log("Step 2 ready: answer questions in 'Clarification Questions', then click Generate Prompt.")
+        }
+        promptOutputPanel.setState("Clarifications ready", Color(59, 89, 152))
+
+        SwingUtilities.invokeLater {
+            clarificationPanel.component.scrollRectToVisible(clarificationPanel.component.bounds)
+            clarificationPanel.component.requestFocusInWindow()
+        }
     }
 
-    private fun analyzeTroubleshootingFailure() {
-        val cmd = tsFailedCommandField.text.trim()
+    private fun generateFinalPrompt() {
+        val task = taskInputArea.text.trim()
+        if (task.isBlank()) {
+            log("No request entered for generation.")
+            return
+        }
+
+        if (!didAnalyseRequest) {
+            log("No clarification answers provided. Generating from the initial request only.")
+        }
+
+        val profile = selectedProfile()
+        val depth = selectedDepth()
+        val mode = selectedMode()
+        val guardrails = guardrailPanel.selectedGuardrails().filter { it.enabled }
+        val answers = clarificationPanel.answersMap()
+        val clarificationQuestions = clarificationPanel.questionsWithAnswers()
+        val analysis = clarificationService.analyzeRequest(task, answers)
+
+        sessionConfig = PromptSessionConfig(
+            promptMode = mode,
+            behaviourProfile = profile,
+            promptDepth = depth,
+            enabledGuardrails = guardrails,
+            requestAnalysis = analysis,
+            clarificationQuestions = clarificationQuestions
+        )
+
+        val prompt = promptBuilder.buildImplementationPrompt(task, sessionConfig)
+        promptOutputPanel.setPrompt(
+            promptText = prompt,
+            profileName = profile.displayName,
+            depthName = depth.displayName,
+            enabledGuardrails = guardrails.size,
+            generationState = "Generated successfully"
+        )
+        workflowStateLabel.text = "Prompt generated. Review/edit in raw markdown or preview mode."
+        workflowStateLabel.foreground = Color(45, 127, 84)
+        log("Prompt generated in ${mode.displayName} using ${profile.displayName} profile.")
+    }
+
+    private fun runTroubleshootingAnalysis() {
+        val command = tsFailedCommandField.text.trim()
+        val technology = tsTechnologyField.text.trim().ifBlank { "unknown technology" }
         val errorOutput = tsErrorOutputArea.text.trim()
+        val materialChange = tsMaterialChangeField.text.trim().ifBlank { "Not specified" }
 
-        if (cmd.isEmpty()) {
-            log("⚠  Enter the failed command.")
+        if (command.isBlank() || errorOutput.isBlank()) {
+            workflowStateLabel.text = "Troubleshooting needs command + error output"
+            workflowStateLabel.foreground = Color(153, 61, 61)
+            log("Troubleshooting analysis requires command and error output.")
             return
         }
-        if (errorOutput.isEmpty()) {
-            log("⚠  Paste the error output.")
+
+        val failedCommand = FailedCommand(
+            command = command,
+            errorOutput = errorOutput,
+            technology = technology,
+            phase = DiagnosticPhase.UNKNOWN
+        )
+        val state = TroubleshootingState(
+            currentBlocker = materialChange,
+            failedCommands = listOf(failedCommand)
+        )
+        val prompt = troubleshootingService.generateTroubleshootingPrompt(state, failedCommand)
+
+        promptOutputPanel.setPrompt(
+            promptText = prompt,
+            profileName = BehaviourProfile.TROUBLESHOOTER.displayName,
+            depthName = PromptDepth.DETAILED.displayName,
+            enabledGuardrails = guardrailPanel.enabledCount(),
+            generationState = "Troubleshooting analysis generated"
+        )
+        workflowStateLabel.text = "Troubleshooting prompt generated from captured evidence."
+        workflowStateLabel.foreground = Color(45, 127, 84)
+        log("Troubleshooting analysis generated.")
+    }
+
+    private fun savePromptArtefact() {
+        val text = promptOutputPanel.getPromptText().trim()
+        if (text.isBlank() || text.startsWith("No prompt generated yet")) {
+            log("Generate a prompt before saving artefacts.")
             return
         }
 
-        log("🔍 Analyzing failure...")
-        val prompt = """
-        ## Troubleshooting Analysis
-
-        **Failed Command:** $cmd
-        **Error Output:**
-        ```
-        $errorOutput
-        ```
-
-        [Detailed troubleshooting logic would go here]
-        """.trimIndent()
-
-        setPrompt(prompt)
-        log("✅ Generated troubleshooting analysis.")
+        try {
+            val artefact = artefactPersistenceService.savePromptArtefact(text, project)
+            log("Saved artefact: .prompt-whisperer/prompts/${artefact.filename}")
+        } catch (ex: Exception) {
+            log("Save failed: ${ex.message ?: "Unknown error"}")
+        }
     }
 
-    private fun setPrompt(text: String) {
-        promptPreview.foreground = UIManager.getColor("TextArea.foreground") ?: Color.BLACK
-        promptPreview.text = text
-        promptPreview.caretPosition = 0
+    private fun exportPrompt(prompt: String) {
+        if (prompt.isBlank() || prompt.startsWith("No prompt generated yet")) {
+            log("Generate a prompt before exporting.")
+            return
+        }
+
+        val chooser = JFileChooser().apply {
+            selectedFile = File(project.basePath ?: ".", "prompt-whisperer-export.prompt.md")
+        }
+
+        val result = chooser.showSaveDialog(component)
+        if (result == JFileChooser.APPROVE_OPTION) {
+            try {
+                chooser.selectedFile.writeText(prompt)
+                log("Exported prompt: ${chooser.selectedFile.absolutePath}")
+                promptOutputPanel.setState("Prompt exported", Color(45, 127, 84))
+            } catch (ex: Exception) {
+                log("Export failed: ${ex.message ?: "Unknown error"}")
+            }
+        }
     }
 
-    private fun clearPrompt() {
-        promptPreview.foreground = Color.GRAY
-        promptPreview.text = "(No prompt generated yet — describe your task and click Generate Prompt.)"
+    private fun resetSession() {
+        taskInputArea.text = ""
+        tsFailedCommandField.text = ""
+        tsTechnologyField.text = ""
+        tsErrorOutputArea.text = ""
+        tsMaterialChangeField.text = ""
+        clearQuestions(keepLog = true)
+        applyProfileDefaults()
+        generateButton.isEnabled = true
+        activityLog.text = ""
+        workflowStateLabel.text = "Stage 1: Enter your request and click Analyse Request"
+        workflowStateLabel.foreground = Color(59, 89, 152)
+        promptOutputPanel.clear("No prompt generated yet. Describe a task and click Analyse Request.")
+        log("Session reset.")
     }
+
+    private fun clearQuestions(keepLog: Boolean) {
+        clarificationPanel.clearQuestions()
+        didAnalyseRequest = false
+        if (!keepLog) {
+            workflowStateLabel.text = "Clarification questions cleared. You can analyse again or generate directly."
+            workflowStateLabel.foreground = Color(153, 102, 0)
+        }
+    }
+
+    private fun selectedMode(): PromptMode = modeSelector.selectedItem as? PromptMode ?: PromptMode.STANDARD
+
+    private fun selectedProfile(): BehaviourProfile =
+        behaviourProfileSelector.selectedItem as? BehaviourProfile ?: BehaviourProfile.default()
+
+    private fun selectedDepth(): PromptDepth =
+        promptDepthSelector.selectedItem as? PromptDepth ?: PromptDepth.default()
 
     private fun log(message: String) {
         activityLog.append("$message\n")
         val doc = activityLog.document
-        if (doc.length > 0) activityLog.caretPosition = doc.length
+        if (doc.length > 0) {
+            activityLog.caretPosition = doc.length
+        }
     }
 
     private fun copyToClipboard(text: String) {
-        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-        clipboard.setContents(StringSelection(text), null)
+        Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null)
     }
 }
 

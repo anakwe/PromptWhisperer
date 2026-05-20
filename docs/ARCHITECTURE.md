@@ -1,64 +1,108 @@
 # Prompt Whisperer Architecture
 
-## High-Level Design
+## Architectural Intent
 
-Prompt Whisperer is an IntelliJ plugin with a local-only prompt generation pipeline.
+Prompt Whisperer is designed as a local-first implementation planning layer between developers and AI coding assistants.
+
+Primary goals:
+- reduce ambiguity before generation
+- preserve engineering quality through explicit controls
+- keep trust boundaries visible (no hidden network/telemetry)
+
+## Layered Design
 
 ### UI Layer
 
+Main classes:
 - `com.promptwhisperer.ui.PromptWhispererToolWindowFactory`
 - `com.promptwhisperer.ui.PromptWhispererPanelV3`
+- `com.promptwhisperer.ui.components.PromptOutputPanel`
+- `com.promptwhisperer.ui.components.ClarificationAnswersPanel`
+- `com.promptwhisperer.ui.components.GuardrailSelectionPanel`
 
 Responsibilities:
-- collect user inputs (mode, profile, depth, task)
-- orchestrate actions (analyse, generate, copy, save, reset)
-- present generated markdown prompt
-- show activity log
+- collect request + mode/profile/depth
+- drive two-stage workflow (`Analyse` -> `Generate Final Prompt`)
+- present dominant prompt workspace (raw/preview)
+- display prompt metadata and activity state
+- manage guardrail UX and defaults
 
 ### Service Layer
 
-- `PromptBuilderImpl` — composable prompt assembly
-- `BehaviourProfileServiceImpl` — profile defaults and guardrail behavior
-- `ClarificationServiceImpl` — request analysis and clarification generation
-- `TroubleshootingServiceImpl` — evidence-based troubleshooting state logic
-- `ArtefactPersistenceServiceImpl` — local artefact persistence and index updates
-- `HashingServiceImpl` and `SlugUtil` — utilities
+Core services:
+- `PromptBuilderImpl`
+- `InferenceEngine`
+- `ClarificationServiceImpl`
+- `BehaviourProfileServiceImpl`
+- `TroubleshootingServiceImpl`
+- `ArtefactPersistenceServiceImpl`
+
+#### Composable prompt block architecture
+
+`PromptBuilderImpl` composes reusable `PromptBlock` implementations:
+
+- `CorePromptBlock`
+- `BehaviourProfileBlock`
+- `PromptDepthBlock`
+- `ClarificationAnswersBlock`
+- `PlanningBalanceBlock`
+- `ImplementationConsiderationsBlock`
+- `RecommendedArchitectureBlock`
+- `EngineeringTradeOffsBlock`
+- `SuggestedDeliveryPrioritiesBlock`
+- `ArchitectureBlock`
+- `SecurityBlock`
+- `TestingBlock`
+- `DocumentationBlock`
+- `OperationalBlock`
+- `ModeSpecificBlock`
+- `ConstraintsBlock`
+- `OutputExpectationsBlock`
+
+This block-based design avoids giant template strings and supports extension without rewriting the builder.
+
+`InferenceEngine` provides lightweight, local heuristics for synthesis quality:
+- conflict detection (profile vs depth tension)
+- architecture/operational/security inference
+- trade-off analysis
+- delivery priority recommendations
+- profile-specific reasoning voice
 
 ### Model Layer
 
-- `BehaviourProfile`, `PromptDepth`, `Guardrail`
+- `BehaviourProfile`, `PromptDepth`, `Guardrail`, `GuardrailCategory`
+- `PromptMode`
 - `ClarificationQuestion`, `RequestAnalysis`, `PromptSessionConfig`
-- troubleshooting models (`TroubleshootingState`, `FailedCommand`, etc.)
+- Troubleshooting models (`FailedCommand`, `TroubleshootingState`, etc.)
 
-## Prompt Generation Flow
+## End-to-End Flow
 
-1. User enters task details.
-2. UI calls clarification analysis.
-3. Session config resolves profile + depth + enabled guardrails.
-4. UI calls `PromptBuilderImpl`.
-5. Builder composes markdown blocks into final prompt.
-6. Prompt is shown, copied, and optionally saved.
+1. User chooses mode, profile, depth.
+2. User enters request and clicks `Analyse Request`.
+3. Clarification service generates context-aware questions.
+4. User answers clarifications and adjusts guardrails.
+5. UI assembles `PromptSessionConfig`.
+6. `PromptBuilderImpl` runs composable blocks.
+7. Prompt is shown in raw markdown + preview with metadata.
+8. User copies, exports, or saves artefact.
 
-## Artefact Persistence Flow
+## Security and Trust Boundaries
 
-1. User clicks **Save Artefact**.
-2. `ArtefactPersistenceServiceImpl` writes markdown file under `.prompt-whisperer/prompts/`.
-3. Service computes SHA-256 hash.
-4. Service appends entry to `.prompt-whisperer/index.json`.
+- Prompt generation stays inside IDE process.
+- No hidden telemetry.
+- No hidden prompt submission.
+- No automatic code modification.
+- Prompt artefacts are explicit user action.
 
-## Security Posture
+See:
+- `SECURITY.md`
+- `docs/SECURITY_MODEL.md`
 
-- No external prompt-generation service calls.
-- No automatic source code modification.
-- Secret-like files blocked from prompt context collection by `SecurityFilterService`.
-- Troubleshooting mode enforces no-loop logic and environment safety guidance.
+## Extensibility
 
-## Extension Points
-
-Recommended future additions:
-
-- Markdown preview renderer (raw/preview toggle)
-- Guardrail toggle UI component
-- Clarification answers UI form and final merge into generated prompt
-- Additional mode-specific prompt blocks
-
+Current extension points:
+- new `PromptMode` values + mode-specific block behavior
+- profile-aware clarification expansion
+- additional guardrail categories
+- richer markdown rendering pipeline
+- optional local LLM adapters (explicit opt-in)

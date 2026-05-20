@@ -1,32 +1,95 @@
 # Prompt Whisperer
 
-Prompt Whisperer is an IntelliJ IDEA plugin for generating high-quality, structured prompts for AI coding assistants.
+Prompt Whisperer is a **local-first engineering implementation planning tool** for AI coding assistants.
 
-It is designed as a **local-first, security-conscious prompt design assistant** that helps you produce better implementation instructions for GitHub Copilot and similar tools.
+It acts like a senior engineering consultant between the developer and AI coding tools: reducing ambiguity, surfacing architecture and security concerns, and turning rough requests into execution-ready implementation prompts.
 
-## What Prompt Whisperer Does
+## Why This Exists
 
-- Converts rough task ideas into structured implementation prompts
-- Supports multiple generation modes (implementation, architecture, debugging, security, testing)
-- Supports profile-based prompt behavior (engineering cognition profiles)
-- Supports depth levels for concise vs detailed prompt output
-- Provides troubleshooting workflow inputs for evidence-based debugging prompts
-- Lets you copy prompts directly to clipboard
-- Saves prompt artefacts locally under `.prompt-whisperer/prompts/`
+Many AI coding failures are not model failures. They are specification failures.
 
-## Current Modes
+Prompt Whisperer helps teams move from:
+- vague request -> brittle output
 
-1. **Standard Mode**
-2. **Architecture Mode**
-3. **Debugging Mode**
-4. **Security Review Mode**
-5. **Test Generation Mode**
-6. **Troubleshooting Mode**
+to:
+- clarified request -> scoped plan -> guardrailed implementation prompt
 
-## Engineering Behaviour Profiles
+## Project Philosophy
 
-Prompt generation supports nine engineering-focused profiles:
+Core principles:
+- Think before prompting
+- Architecture before implementation
+- Security-aware AI-assisted coding
+- Explicit engineering guardrails
+- Human-in-control workflows
+- Local-first trust model
+- No hidden telemetry
+- No hidden network activity
 
+## Product Positioning
+
+Prompt Whisperer is **not** a prompt template toy.
+
+Prompt Whisperer **is**:
+- an implementation planning workbench
+- an ambiguity-reduction assistant
+- a profile-driven engineering guidance layer
+- a guardrailed bridge to AI coding assistants
+
+## Main Workflow
+
+1. Describe the engineering goal
+2. Analyse request
+3. Answer visible clarification questions in the dedicated Clarification Questions section
+4. Generate prompt with profile + depth + guardrails + clarification answers
+5. Review/edit in raw markdown or preview mode
+6. Copy/export/save prompt artefact
+
+Prompt Whisperer synthesizes clarification answers into engineering reasoning (not simple answer repetition).
+
+### Clarification Example
+
+Initial request:
+
+`Build a small Flappy Bird style web game.`
+
+Clarification answer:
+
+`Use plain HTML, CSS and JavaScript. Include keyboard and mobile touch controls.`
+
+Generated prompt behavior:
+- keeps implementation browser-native
+- avoids unnecessary framework introduction
+- includes explicit control/input requirements
+- includes trade-offs and delivery priorities
+
+## Screenshots
+
+### 1) Main Workflow
+![Main Workflow](docs/images/main-workflow.png)
+
+### 2) Behaviour Profiles
+![Behaviour Profiles](docs/images/behaviour-profiles.png)
+
+### 3) Guardrails
+![Guardrails](docs/images/guardrails.png)
+
+### 4) Generated Prompt Preview
+![Generated Prompt Preview](docs/images/generated-prompt-preview.png)
+
+### 5) Clarification Workflow
+![Clarification Workflow](docs/images/clarification-workflow.png)
+
+## Feature Breakdown
+
+### Dominant Prompt Workspace
+- Prompt output intentionally occupies most of the UI
+- Editable markdown output
+- Raw markdown and rendered preview modes
+- Prompt metadata banner (profile, depth, guardrails, word count)
+- One-click copy and markdown export
+
+### Behaviour Profiles (9)
 - Balanced Engineer
 - Senior Architect
 - Security Engineer
@@ -37,98 +100,111 @@ Prompt generation supports nine engineering-focused profiles:
 - Teaching Mode
 - Minimalist
 
-Profiles influence prompt wording, constraints, and emphasis.
+Each profile changes prompt wording, constraints, clarification emphasis, and implementation philosophy.
 
-## Prompt Depth Levels
+### Guardrails
+Grouped and configurable under:
+- Architecture
+- Security
+- Code Quality
+- Operational Safety
 
-- **Minimal**
-- **Standard**
-- **Detailed**
-- **Enterprise**
+Guardrails are visible, explainable, and resettable to profile-recommended defaults.
 
-Depth controls prompt verbosity and engineering detail.
+### Prompt Depth
+- Minimal: Short implementation-focused prompts.
+- Standard: Balanced engineering detail and guidance.
+- Detailed: Senior-engineer-level implementation planning.
+- Enterprise: Architecture, governance, operational, and documentation heavy prompts.
 
-## Local-First and Security-First Principles
+### Clarification Workflow
+Before final prompt generation, Prompt Whisperer asks dynamic context-aware questions (framework, responsiveness, testing, deployment, etc.) to materially improve prompt quality.
 
-Prompt Whisperer is built with strict safety constraints:
+### Inference-Driven Prompt Synthesis
+A local rule-based inference layer converts user intent into implementation planning guidance.
 
-- No external API calls for prompt generation
-- No telemetry or hidden tracking
-- No automatic code modification
-- No automatic Copilot submission
-- No shell profile mutation (`~/.zshrc`, `~/.bashrc`, etc.)
+Generated prompts now include reasoning sections:
+- `## Implementation Considerations`
+- `## Recommended Architecture`
+- `## Planning Balance`
+- `## Engineering Trade-Offs`
+- `## Suggested Delivery Priorities`
+
+## Local-First Trust Model
+
+Prompt Whisperer is designed to be explicit and trustworthy:
+- prompt generation is local
+- no hidden telemetry
+- no hidden network activity for generation
+- no automatic prompt submission
+- no automatic code modifications
+
+See also:
+- `SECURITY.md`
+- `docs/SECURITY_MODEL.md`
 
 ## Installation
 
-### Option A — Run in IntelliJ sandbox (recommended for development)
-
+### Run in IntelliJ sandbox
 ```bash
+git clone https://github.com/anakwe/PromptWhisperer.git
 cd PromptWhisperer
 ./gradlew clean test
 ./gradlew runIde
 ```
 
-### Option B — Build plugin and install from disk
-
+### Build plugin package
 ```bash
-cd PromptWhisperer
-./gradlew buildPlugin
+./gradlew clean buildPlugin
 ```
 
-Then in IntelliJ:
+Install from disk in IntelliJ:
+- `Settings` -> `Plugins` -> gear icon -> `Install Plugin from Disk...`
+- Select package from `build/distributions/`
 
-`Settings` → `Plugins` → gear icon → `Install Plugin from Disk...`
-
-Select the plugin ZIP/JAR from `build/distributions/`.
-
-## Usage
-
-1. Open **View > Tool Windows > Prompt Whisperer**
-2. Choose mode, profile, and depth
-3. Enter task description
-4. Click **Analyse Request** (or **Analyse Failure** in Troubleshooting mode)
-5. Click **Generate Prompt**
-6. Review and edit generated markdown
-7. Click **Copy Prompt** and paste into Copilot Chat
-8. Optionally click **Save Artefact**
-
-## Prompt Artefacts
-
-Saved prompts are stored in:
-
-- `.prompt-whisperer/prompts/`
-- `.prompt-whisperer/index.json`
-
-Filenames follow:
-
-- `YYYYMMDD-HHMMSS-task-slug.prompt.md`
-
-Index entries include SHA-256 hash for integrity.
-
-## Build and Test
+## Development Setup
 
 ```bash
-cd PromptWhisperer
-./gradlew clean test buildPlugin
+./gradlew clean test
+./gradlew runIde
 ```
+
+## Plugin Packaging
+
+```bash
+./gradlew clean buildPlugin
+```
+
+Output:
+- `build/distributions/prompt-whisperer-<version>.zip`
 
 ## Documentation
 
 - `docs/QUICK_START.md`
 - `docs/USER_GUIDE.md`
 - `docs/ARCHITECTURE.md`
+- `docs/SECURITY_MODEL.md`
 - `SECURITY.md`
 - `CONTRIBUTING.md`
+- `CHANGELOG.md`
+
+## Roadmap
+
+Planned enhancements:
+- richer clarification engine
+- reusable prompt presets
+- organizational engineering standards packs
+- prompt comparison view
+- prompt history search
+- VS Code support
+- export/import prompt configurations
+- optional local LLM integration
+- prompt refinement workflow
 
 ## Contributing
 
-Please see `CONTRIBUTING.md`.
-
-## Code of Conduct
-
-Please see `CODE_OF_CONDUCT.md`.
+Contributions are welcome. Please start with `CONTRIBUTING.md`.
 
 ## License
 
-This project is licensed under the Apache License 2.0.
-See `LICENSE`.
+Apache License 2.0. See `LICENSE`.

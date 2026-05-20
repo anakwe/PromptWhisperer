@@ -1,15 +1,14 @@
 # Prompt Whisperer Quick Start
 
-Use this guide to run Prompt Whisperer locally in under 5 minutes.
+This guide gets you from clone to first high-quality implementation prompt quickly.
 
 ## Prerequisites
 
-- macOS, Linux, or Windows
 - JDK 21+
 - IntelliJ IDEA
 - Git
 
-## 1) Clone and run in IntelliJ sandbox
+## 1) Clone and launch sandbox
 
 ```bash
 git clone https://github.com/anakwe/PromptWhisperer.git
@@ -18,55 +17,53 @@ cd PromptWhisperer
 ./gradlew runIde
 ```
 
-This starts a sandbox IntelliJ with Prompt Whisperer pre-installed.
-
-## 2) Open Prompt Whisperer
+## 2) Open the tool window
 
 In sandbox IntelliJ:
+- `View` -> `Tool Windows` -> `Prompt Whisperer`
 
-- `View` → `Tool Windows` → `Prompt Whisperer`
+## 3) Generate a final prompt (recommended flow)
 
-## 3) Generate a prompt
+1. Select mode, behaviour profile, and depth.
+2. Enter your implementation request.
+3. Click `Analyse Request`.
+4. Answer follow-up questions in the `Clarification Questions` section.
+5. Optionally adjust guardrails.
+6. Click `Generate Prompt`.
 
-1. Select mode, profile, and depth.
-2. Enter your task description.
-3. Click **Analyse Request**.
-4. Click **Generate Prompt**.
-5. Edit prompt if needed.
-6. Click **Copy Prompt**.
+If you skip analysis, generation still works and the tool logs that it used the initial request only.
 
-Paste the prompt into GitHub Copilot Chat.
+The generated prompt now synthesizes your answers into implementation reasoning, architecture recommendations, trade-offs, and delivery priorities.
 
-## 4) Save a prompt artefact (optional)
+## 4) Review output
 
-Click **Save Artefact** to persist generated prompt files under:
+The bottom workspace is the main product surface:
+- metadata bar (profile/depth/guardrails/word count)
+- raw markdown mode (editable)
+- markdown preview mode
+- copy and export actions
 
+## 5) Save local artefact (optional)
+
+Use `Save Artefact` to persist prompt output under:
 - `.prompt-whisperer/prompts/`
 - `.prompt-whisperer/index.json`
 
-## 5) Install into your own IntelliJ (optional)
+## 6) Build installable plugin package
 
 ```bash
-./gradlew buildPlugin
+./gradlew clean buildPlugin
 ```
 
-Then install from disk in IntelliJ:
-
-- `Settings` → `Plugins` → gear icon → `Install Plugin from Disk...`
+Install from IntelliJ:
+- `Settings` -> `Plugins` -> gear icon -> `Install Plugin from Disk...`
+- choose zip from `build/distributions/`
 
 ## Troubleshooting startup
-
-If sandbox does not open:
 
 ```bash
 ./gradlew --stop
 ./gradlew clean runIde --stacktrace
 ```
 
-If tests fail:
-
-```bash
-./gradlew clean test --info
-```
-
-See `docs/USER_GUIDE.md` for full feature details.
+See `docs/USER_GUIDE.md` for full usage details.

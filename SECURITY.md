@@ -1,5 +1,7 @@
 # Security Policy
 
+For a detailed architecture-level security model, see `docs/SECURITY_MODEL.md`.
+
 ## Security Principles
 
 Prompt Whisperer is designed with a local-first, least-surprise security model:

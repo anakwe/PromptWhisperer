@@ -1,0 +1,29 @@
+name: Security Issue
+description: Report a security concern privately (do not include exploit details)
+labels: [security]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please avoid posting sensitive exploit details publicly.
+        For high-risk vulnerabilities, email: opensource@anakwe.org
+  - type: textarea
+    id: summary
+    attributes:
+      label: Security Concern Summary
+      description: High-level summary only.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Potential Impact
+      description: What could an attacker do?
+    validations:
+      required: true
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Suggested Mitigation
+      description: Optional immediate workaround or remediation ideas.
+

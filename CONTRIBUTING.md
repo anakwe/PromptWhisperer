@@ -1,6 +1,6 @@
-# Contributing to Prompt Whisperer
+# Contributing to Prompt WhispererThanks for helping improve Prompt Whisperer.
 
-Thanks for your interest in contributing.
+This project prioritizes engineering quality, local-first trust, and explicit control in AI-assisted workflows.
 
 ## Development Setup
 
@@ -17,27 +17,57 @@ cd PromptWhisperer
 ./gradlew clean test buildPlugin
 ```
 
-## Contribution Guidelines
+## Contribution Principles
 
-- Keep changes focused and reviewable.
-- Preserve local-first and security-first principles.
-- Do not add hidden network calls or telemetry.
-- Add tests for new behavior when practical.
+- Keep changes incremental and reviewable.
+- Preserve local-first, no-telemetry architecture.
+- Do not add hidden network calls.
+- Do not add automatic prompt submission.
+- Do not add automatic code modification behavior.
 - Update docs for user-visible changes.
+
+## Engineering Quality Expectations
+
+- Production-quality Kotlin naming and structure.
+- KDoc on non-trivial public classes/functions.
+- Avoid giant classes and hard-to-extend template logic.
+- Prefer composable units over monolithic branches.
+- Preserve behaviour profile and guardrail semantics.
+
+## UX Quality Expectations
+
+When changing UI:
+- keep generated prompt output visually dominant
+- preserve two-stage clarification workflow
+- keep profile/depth/guardrail explanations clear
+- avoid novelty UI effects that conflict with JetBrains-native UX
+
+## Pull Request Process
+
+1. Create a focused branch.
+2. Implement change with tests/docs updates as needed.
+3. Run local validation.
+4. Open PR using template.
+5. Address review feedback.
 
 ## Pull Request Checklist
 
-- [ ] Code compiles
-- [ ] Tests pass
-- [ ] Docs updated
-- [ ] No unrelated file changes
-- [ ] No local machine artefacts committed
+- [ ] Builds and tests pass locally
+- [ ] Documentation updated
+- [ ] No unrelated file churn
+- [ ] No machine-local artefacts committed
+- [ ] Security and local-first constraints preserved
 
-## Commit Style
+## Commit Message Style
 
-Use clear commit messages, for example:
+Examples:
+- `feat: add clarification answer panel and final prompt stage`
+- `feat: refactor prompt builder into composable blocks`
+- `docs: reposition README around implementation planning`
+- `fix: prevent generation before clarification stage`
 
-- `feat: add markdown preview toggle`
-- `fix: block retry when no material change`
-- `docs: update troubleshooting workflow`
+## Security Reporting
 
+Do not open public issues for active vulnerabilities.
+
+Report privately via `opensource@anakwe.org`.
