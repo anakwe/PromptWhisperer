@@ -108,6 +108,8 @@ class PromptClarificationTests {
         assertTrue(prompt.contains("Reasoning stance: MVP delivery coach"))
         assertTrue(prompt.contains("Prioritize a playable, testable MVP slice first."))
         assertTrue(prompt.contains("Deliver playable MVP slice before optional architecture hardening"))
+        assertTrue(prompt.contains("## Conflict Detected"))
+        assertTrue(prompt.contains("Recommended interpretation:"))
     }
 
     @Test
