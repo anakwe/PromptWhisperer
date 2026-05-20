@@ -12,7 +12,10 @@ class InferenceEngine {
     /**
      * Computes all reasoning outputs used by synthesis-focused prompt blocks.
      */
-    fun analyze(task: String, config: PromptSessionConfig): PromptInference {
+    fun analyze(
+        task: String,
+        config: PromptSessionConfig,
+    ): PromptInference {
         return PromptInference(
             voiceFrame = inferVoiceFrame(config.behaviourProfile),
             voiceInstructions = inferVoiceInstructions(config.behaviourProfile),
@@ -22,7 +25,7 @@ class InferenceEngine {
             securityConcerns = inferSecurityConcerns(task, config),
             tradeoffs = inferTradeoffs(task, config),
             deliveryPriorities = inferDeliveryPriorities(task, config),
-            recommendedArchitecture = inferRecommendedArchitecture(task, config)
+            recommendedArchitecture = inferRecommendedArchitecture(task, config),
         )
     }
 
@@ -36,17 +39,17 @@ class InferenceEngine {
 
         if (profile == BehaviourProfile.RAPID_PROTOTYPE && depth == PromptDepth.ENTERPRISE) {
             conflicts.add(
-                "The selected Behaviour Profile prioritises rapid MVP delivery, while Enterprise depth introduces governance and operational rigor."
+                "The selected Behaviour Profile prioritises rapid MVP delivery, while Enterprise depth introduces governance and operational rigor.",
             )
         }
         if (profile == BehaviourProfile.MINIMALIST && depth == PromptDepth.ENTERPRISE) {
             conflicts.add(
-                "Minimalist profile favors lean implementation, but Enterprise depth expects expanded architecture, controls, and documentation."
+                "Minimalist profile favors lean implementation, but Enterprise depth expects expanded architecture, controls, and documentation.",
             )
         }
         if (profile == BehaviourProfile.SECURITY_ENGINEER && depth == PromptDepth.MINIMAL) {
             conflicts.add(
-                "Security Engineer profile expects strong safeguards, while Minimal depth may under-specify validation and threat controls."
+                "Security Engineer profile expects strong safeguards, while Minimal depth may under-specify validation and threat controls.",
             )
         }
         return conflicts
@@ -55,7 +58,10 @@ class InferenceEngine {
     /**
      * Infers architecture implications from task semantics and clarification answers.
      */
-    fun inferArchitectureConcerns(task: String, config: PromptSessionConfig): List<String> {
+    fun inferArchitectureConcerns(
+        task: String,
+        config: PromptSessionConfig,
+    ): List<String> {
         val concerns = mutableListOf<String>()
         val lowerTask = task.lowercase()
         val answers = answers(config.clarificationQuestions)
@@ -63,7 +69,9 @@ class InferenceEngine {
 
         val frontendApproach = answers["q_frontend_approach"]
         if (frontendApproach != null && frontendApproach.contains("plain html", ignoreCase = true)) {
-            concerns.add("Prefer lightweight browser-native implementation and avoid introducing frontend frameworks unless technically justified.")
+            concerns.add(
+                "Prefer lightweight browser-native implementation and avoid introducing frontend frameworks unless technically justified.",
+            )
             concerns.add("Keep deployment compatible with static hosting by minimizing runtime dependencies.")
         }
 
@@ -84,7 +92,10 @@ class InferenceEngine {
 
         when (profile) {
             BehaviourProfile.RAPID_PROTOTYPE -> {
-                concerns.add(0, "Given the Rapid Prototype profile, prioritize a shippable vertical slice before adding optional abstractions.")
+                concerns.add(
+                    0,
+                    "Given the Rapid Prototype profile, prioritize a shippable vertical slice before adding optional abstractions.",
+                )
             }
             BehaviourProfile.SENIOR_ARCHITECT -> {
                 concerns.add(0, "Define clear module boundaries first so future growth does not force broad refactors.")
@@ -101,7 +112,10 @@ class InferenceEngine {
     /**
      * Infers operability and delivery-environment concerns.
      */
-    fun inferOperationalConcerns(task: String, config: PromptSessionConfig): List<String> {
+    fun inferOperationalConcerns(
+        task: String,
+        config: PromptSessionConfig,
+    ): List<String> {
         val concerns = mutableListOf<String>()
         val lowerTask = task.lowercase()
         val answers = answers(config.clarificationQuestions)
@@ -124,7 +138,10 @@ class InferenceEngine {
     /**
      * Infers security boundaries and safeguards relevant to the request.
      */
-    fun inferSecurityConcerns(task: String, config: PromptSessionConfig): List<String> {
+    fun inferSecurityConcerns(
+        task: String,
+        config: PromptSessionConfig,
+    ): List<String> {
         val concerns = mutableListOf<String>()
         val lowerTask = task.lowercase()
         val answers = answers(config.clarificationQuestions)
@@ -136,7 +153,9 @@ class InferenceEngine {
         }
 
         if (answers["q_compliance"]?.isNotBlank() == true && answers["q_compliance"] != "None") {
-            concerns.add("Compliance expectations include ${answers["q_compliance"]}; preserve evidence-oriented logging and documentation decisions.")
+            concerns.add(
+                "Compliance expectations include ${answers["q_compliance"]}; preserve evidence-oriented logging and documentation decisions.",
+            )
         }
         return concerns.distinct()
     }
@@ -144,25 +163,38 @@ class InferenceEngine {
     /**
      * Produces explicit trade-off statements for major implementation choices.
      */
-    fun inferTradeoffs(task: String, config: PromptSessionConfig): List<String> {
+    fun inferTradeoffs(
+        task: String,
+        config: PromptSessionConfig,
+    ): List<String> {
         val tradeoffs = mutableListOf<String>()
         val lowerTask = task.lowercase()
         val answers = answers(config.clarificationQuestions)
 
         if (answers["q_score_tracking"]?.contains("local", ignoreCase = true) == true) {
-            tradeoffs.add("A local-only leaderboard keeps implementation and deployment simple, but does not provide cross-device persistence or competitive integrity.")
+            tradeoffs.add(
+                "A local-only leaderboard keeps implementation and deployment simple, but does not provide cross-device persistence or competitive integrity.",
+            )
         }
         if (answers["q_frontend_approach"]?.contains("plain html", ignoreCase = true) == true) {
-            tradeoffs.add("A plain HTML/CSS/JavaScript approach minimizes framework overhead, but may require more manual structure for long-term maintainability.")
+            tradeoffs.add(
+                "A plain HTML/CSS/JavaScript approach minimizes framework overhead, but may require more manual structure for long-term maintainability.",
+            )
         }
         if (config.behaviourProfile == BehaviourProfile.RAPID_PROTOTYPE) {
-            tradeoffs.add("Prioritizing rapid iteration accelerates delivery, but hardening and architectural refinement should be scheduled explicitly.")
+            tradeoffs.add(
+                "Prioritizing rapid iteration accelerates delivery, but hardening and architectural refinement should be scheduled explicitly.",
+            )
         }
         if (config.behaviourProfile == BehaviourProfile.SECURITY_ENGINEER) {
-            tradeoffs.add("Security-first controls reduce attack surface early, but can increase implementation effort in the first milestone.")
+            tradeoffs.add(
+                "Security-first controls reduce attack surface early, but can increase implementation effort in the first milestone.",
+            )
         }
         if (config.promptDepth == PromptDepth.ENTERPRISE && (lowerTask.contains("mvp") || config.behaviourProfile == BehaviourProfile.RAPID_PROTOTYPE)) {
-            tradeoffs.add("Enterprise-level documentation and controls improve handover quality, but can slow MVP delivery if applied too early.")
+            tradeoffs.add(
+                "Enterprise-level documentation and controls improve handover quality, but can slow MVP delivery if applied too early.",
+            )
         }
         return tradeoffs.distinct()
     }
@@ -170,28 +202,32 @@ class InferenceEngine {
     /**
      * Produces an ordered implementation sequence weighted by profile and depth.
      */
-    fun inferDeliveryPriorities(task: String, config: PromptSessionConfig): List<String> {
+    fun inferDeliveryPriorities(
+        task: String,
+        config: PromptSessionConfig,
+    ): List<String> {
         val lowerTask = task.lowercase()
-        val base = if (lowerTask.contains("flappy") || lowerTask.contains("game")) {
-            mutableListOf(
-                "Core gameplay loop",
-                "Input handling (keyboard/touch)",
-                "Collision and scoring system",
-                "Score persistence strategy",
-                "Mobile responsiveness and performance",
-                "Authentication/integration flow",
-                "UI polish and accessibility",
-                "Sound and optional enhancements"
-            )
-        } else {
-            mutableListOf(
-                "Core feature implementation",
-                "Validation and error handling",
-                "Testing coverage",
-                "Operational and deployment readiness",
-                "Documentation updates"
-            )
-        }
+        val base =
+            if (lowerTask.contains("flappy") || lowerTask.contains("game")) {
+                mutableListOf(
+                    "Core gameplay loop",
+                    "Input handling (keyboard/touch)",
+                    "Collision and scoring system",
+                    "Score persistence strategy",
+                    "Mobile responsiveness and performance",
+                    "Authentication/integration flow",
+                    "UI polish and accessibility",
+                    "Sound and optional enhancements",
+                )
+            } else {
+                mutableListOf(
+                    "Core feature implementation",
+                    "Validation and error handling",
+                    "Testing coverage",
+                    "Operational and deployment readiness",
+                    "Documentation updates",
+                )
+            }
 
         when (config.behaviourProfile) {
             BehaviourProfile.RAPID_PROTOTYPE -> {
@@ -222,7 +258,10 @@ class InferenceEngine {
         return base.distinct()
     }
 
-    private fun inferRecommendedArchitecture(task: String, config: PromptSessionConfig): List<String> {
+    private fun inferRecommendedArchitecture(
+        task: String,
+        config: PromptSessionConfig,
+    ): List<String> {
         val architecture = mutableListOf<String>()
         val lowerTask = task.lowercase()
         val answers = answers(config.clarificationQuestions)
@@ -252,40 +291,46 @@ class InferenceEngine {
         return architecture.distinct()
     }
 
-    private fun inferVoiceFrame(profile: BehaviourProfile): String = when (profile) {
-        BehaviourProfile.SECURITY_ENGINEER -> "Threat-model-first architect"
-        BehaviourProfile.RAPID_PROTOTYPE -> "MVP delivery coach"
-        BehaviourProfile.ENTERPRISE_CONSULTANT -> "Governance-aware architecture consultant"
-        BehaviourProfile.DEVOPS_SRE -> "Reliability-first delivery engineer"
-        BehaviourProfile.SENIOR_ARCHITECT -> "Long-horizon system designer"
-        BehaviourProfile.TROUBLESHOOTER -> "Evidence-first root cause investigator"
-        BehaviourProfile.TEACHING_MODE -> "Mentor engineer explaining trade-offs"
-        BehaviourProfile.MINIMALIST -> "Lean implementation strategist"
-        BehaviourProfile.BALANCED_ENGINEER -> "Pragmatic senior engineer"
-    }
+    private fun inferVoiceFrame(profile: BehaviourProfile): String =
+        when (profile) {
+            BehaviourProfile.SECURITY_ENGINEER -> "Threat-model-first architect"
+            BehaviourProfile.RAPID_PROTOTYPE -> "MVP delivery coach"
+            BehaviourProfile.ENTERPRISE_CONSULTANT -> "Governance-aware architecture consultant"
+            BehaviourProfile.DEVOPS_SRE -> "Reliability-first delivery engineer"
+            BehaviourProfile.SENIOR_ARCHITECT -> "Long-horizon system designer"
+            BehaviourProfile.TROUBLESHOOTER -> "Evidence-first root cause investigator"
+            BehaviourProfile.TEACHING_MODE -> "Mentor engineer explaining trade-offs"
+            BehaviourProfile.MINIMALIST -> "Lean implementation strategist"
+            BehaviourProfile.BALANCED_ENGINEER -> "Pragmatic senior engineer"
+        }
 
-    private fun inferVoiceInstructions(profile: BehaviourProfile): List<String> = when (profile) {
-        BehaviourProfile.SECURITY_ENGINEER -> listOf(
-            "Lead with threat boundaries, abuse cases, and trust assumptions.",
-            "Prefer secure defaults before convenience.",
-            "Demand explicit validation and permission scope decisions."
-        )
-        BehaviourProfile.RAPID_PROTOTYPE -> listOf(
-            "Prioritize a playable, testable MVP slice first.",
-            "Avoid abstractions that do not accelerate first delivery.",
-            "Defer hardening work explicitly rather than silently ignoring it."
-        )
-        BehaviourProfile.ENTERPRISE_CONSULTANT -> listOf(
-            "Make governance and maintainability visible in the plan.",
-            "Treat rollout and operational controls as design inputs.",
-            "Document decisions for teams beyond the original implementer."
-        )
-        BehaviourProfile.DEVOPS_SRE -> listOf(
-            "Bias towards operability, reliability, and safe rollback.",
-            "Make observability an explicit design requirement."
-        )
-        else -> listOf("Keep reasoning explicit and actionable.")
-    }
+    private fun inferVoiceInstructions(profile: BehaviourProfile): List<String> =
+        when (profile) {
+            BehaviourProfile.SECURITY_ENGINEER ->
+                listOf(
+                    "Lead with threat boundaries, abuse cases, and trust assumptions.",
+                    "Prefer secure defaults before convenience.",
+                    "Demand explicit validation and permission scope decisions.",
+                )
+            BehaviourProfile.RAPID_PROTOTYPE ->
+                listOf(
+                    "Prioritize a playable, testable MVP slice first.",
+                    "Avoid abstractions that do not accelerate first delivery.",
+                    "Defer hardening work explicitly rather than silently ignoring it.",
+                )
+            BehaviourProfile.ENTERPRISE_CONSULTANT ->
+                listOf(
+                    "Make governance and maintainability visible in the plan.",
+                    "Treat rollout and operational controls as design inputs.",
+                    "Document decisions for teams beyond the original implementer.",
+                )
+            BehaviourProfile.DEVOPS_SRE ->
+                listOf(
+                    "Bias towards operability, reliability, and safe rollback.",
+                    "Make observability an explicit design requirement.",
+                )
+            else -> listOf("Keep reasoning explicit and actionable.")
+        }
 
     private fun answers(questions: List<ClarificationQuestion>): Map<String, String> {
         return questions.associate { it.id to it.resolvedAnswer() }
@@ -304,6 +349,5 @@ data class PromptInference(
     val securityConcerns: List<String>,
     val tradeoffs: List<String>,
     val deliveryPriorities: List<String>,
-    val recommendedArchitecture: List<String>
+    val recommendedArchitecture: List<String>,
 )
-

@@ -32,7 +32,6 @@ import kotlin.test.assertTrue
  * - Generated prompt structure (no-repeat rule, user-run mode, evidence request)
  */
 class TroubleshootingModeTests {
-
     private val service = TroubleshootingServiceImpl()
 
     // -------------------------------------------------------------------------
@@ -50,7 +49,7 @@ class TroubleshootingModeTests {
         // Trying to run the same command again without recording a material change
         assertFalse(
             service.canRetryCommand(state, cmd),
-            "Should block retry: same command failed and nothing material changed"
+            "Should block retry: same command failed and nothing material changed",
         )
     }
 
@@ -73,29 +72,32 @@ class TroubleshootingModeTests {
         state = service.recordFailure(state, failed)
 
         // Record a material change
-        state = service.recordMaterialChange(
-            state,
-            MaterialChange(
-                category = MaterialChangeCategory.PATH_OR_TOOLCHAIN_CHANGED,
-                description = "Updated JAVA_HOME to JDK 17"
+        state =
+            service.recordMaterialChange(
+                state,
+                MaterialChange(
+                    category = MaterialChangeCategory.PATH_OR_TOOLCHAIN_CHANGED,
+                    description = "Updated JAVA_HOME to JDK 17",
+                ),
             )
-        )
 
         assertTrue(
             service.canRetryCommand(state, cmd),
-            "Should allow retry: a material change has been recorded"
+            "Should allow retry: a material change has been recorded",
         )
     }
 
     @Test
     fun `material changes accumulate correctly`() {
         var state = TroubleshootingState()
-        state = service.recordMaterialChange(
-            state, MaterialChange(MaterialChangeCategory.DEPENDENCY_INSTALLED_OR_UPDATED, "Added missing lib")
-        )
-        state = service.recordMaterialChange(
-            state, MaterialChange(MaterialChangeCategory.CONFIGURATION_CHANGED, "Fixed build.gradle")
-        )
+        state =
+            service.recordMaterialChange(
+                state, MaterialChange(MaterialChangeCategory.DEPENDENCY_INSTALLED_OR_UPDATED, "Added missing lib"),
+            )
+        state =
+            service.recordMaterialChange(
+                state, MaterialChange(MaterialChangeCategory.CONFIGURATION_CHANGED, "Fixed build.gradle"),
+            )
         assertEquals(2, state.materialChanges.size)
     }
 
@@ -105,14 +107,15 @@ class TroubleshootingModeTests {
 
     @Test
     fun `extractRootCause returns deepest Caused by line from stack trace`() {
-        val stackTrace = """
+        val stackTrace =
+            """
             Exception in thread "main" java.lang.RuntimeException: wrapper error
                 at com.example.Main.run(Main.kt:10)
             Caused by: java.lang.IllegalStateException: second cause
                 at com.example.Foo.bar(Foo.kt:5)
             Caused by: java.io.FileNotFoundException: /etc/config.yml (No such file or directory)
                 at com.example.Config.load(Config.kt:3)
-        """.trimIndent()
+            """.trimIndent()
 
         val rootCause = service.extractRootCause(stackTrace)
         assertContains(rootCause, "FileNotFoundException", ignoreCase = true)
@@ -120,10 +123,11 @@ class TroubleshootingModeTests {
 
     @Test
     fun `extractRootCause prioritises missing class error over Caused by`() {
-        val error = """
+        val error =
+            """
             Error: Could not find or load main class org.gradle.wrapper.GradleWrapperMain
             Caused by: java.lang.ClassNotFoundException: org.gradle.wrapper.GradleWrapperMain
-        """.trimIndent()
+            """.trimIndent()
 
         val rootCause = service.extractRootCause(error)
         assertContains(rootCause, "Could not find or load main class", ignoreCase = true)
@@ -149,81 +153,89 @@ class TroubleshootingModeTests {
 
     @Test
     fun `JAVA_HOME error infers TOOLCHAIN phase`() {
-        val failed = FailedCommand(
-            command = "./gradlew test",
-            errorOutput = "Error: Could not find or load main class org.gradle.wrapper.GradleWrapperMain",
-            technology = "gradle"
-        )
+        val failed =
+            FailedCommand(
+                command = "./gradlew test",
+                errorOutput = "Error: Could not find or load main class org.gradle.wrapper.GradleWrapperMain",
+                technology = "gradle",
+            )
         assertEquals(DiagnosticPhase.TOOLCHAIN, service.inferPhase(failed))
     }
 
     @Test
     fun `npm cannot find module infers DEPENDENCY phase`() {
-        val failed = FailedCommand(
-            command = "npm start",
-            errorOutput = "Error: Cannot find module 'express'",
-            technology = "npm"
-        )
+        val failed =
+            FailedCommand(
+                command = "npm start",
+                errorOutput = "Error: Cannot find module 'express'",
+                technology = "npm",
+            )
         assertEquals(DiagnosticPhase.DEPENDENCY, service.inferPhase(failed))
     }
 
     @Test
     fun `python no module named infers DEPENDENCY phase`() {
-        val failed = FailedCommand(
-            command = "python app.py",
-            errorOutput = "ModuleNotFoundError: No module named 'flask'",
-            technology = "python"
-        )
+        val failed =
+            FailedCommand(
+                command = "python app.py",
+                errorOutput = "ModuleNotFoundError: No module named 'flask'",
+                technology = "python",
+            )
         assertEquals(DiagnosticPhase.DEPENDENCY, service.inferPhase(failed))
     }
 
     @Test
     fun `gradle build failed with test failures infers TESTING phase`() {
-        val failed = FailedCommand(
-            command = "./gradlew test",
-            errorOutput = "5 tests completed, 2 failures.\nTESTS FAILED",
-            technology = "gradle"
-        )
+        val failed =
+            FailedCommand(
+                command = "./gradlew test",
+                errorOutput = "5 tests completed, 2 failures.\nTESTS FAILED",
+                technology = "gradle",
+            )
         assertEquals(DiagnosticPhase.TESTING, service.inferPhase(failed))
     }
 
     @Test
     fun `docker build failure infers PACKAGING phase`() {
-        val failed = FailedCommand(
-            command = "docker build .",
-            errorOutput = "Error building image: failed to build: exit code 1",
-            technology = "docker"
-        )
+        val failed =
+            FailedCommand(
+                command = "docker build .",
+                errorOutput = "Error building image: failed to build: exit code 1",
+                technology = "docker",
+            )
         assertEquals(DiagnosticPhase.PACKAGING, service.inferPhase(failed))
     }
 
     @Test
     fun `kubectl deployment failure infers DEPLOYMENT phase`() {
-        val failed = FailedCommand(
-            command = "kubectl apply -f deployment.yaml",
-            errorOutput = "deployment failed: invalid kubeconfig",
-            technology = "kubectl"
-        )
+        val failed =
+            FailedCommand(
+                command = "kubectl apply -f deployment.yaml",
+                errorOutput = "deployment failed: invalid kubeconfig",
+                technology = "kubectl",
+            )
         assertEquals(DiagnosticPhase.DEPLOYMENT, service.inferPhase(failed))
     }
 
     @Test
     fun `terraform apply failure infers DEPLOYMENT phase`() {
-        val failed = FailedCommand(
-            command = "terraform apply",
-            errorOutput = "Error: terraform apply failed on resource group",
-            technology = "terraform"
-        )
+        val failed =
+            FailedCommand(
+                command = "terraform apply",
+                errorOutput = "Error: terraform apply failed on resource group",
+                technology = "terraform",
+            )
         assertEquals(DiagnosticPhase.DEPLOYMENT, service.inferPhase(failed))
     }
 
     @Test
     fun `gradle compilation error infers COMPILATION phase`() {
-        val failed = FailedCommand(
-            command = "./gradlew compileKotlin",
-            errorOutput = "e: error: unresolved reference: Foo\nCompilation failed.",
-            technology = "gradle"
-        )
+        val failed =
+            FailedCommand(
+                command = "./gradlew compileKotlin",
+                errorOutput = "e: error: unresolved reference: Foo\nCompilation failed.",
+                technology = "gradle",
+            )
         assertEquals(DiagnosticPhase.COMPILATION, service.inferPhase(failed))
     }
 
@@ -251,66 +263,70 @@ class TroubleshootingModeTests {
 
     @Test
     fun `generated prompt contains no-repeat rule`() {
-        val failed = FailedCommand(
-            command = "./gradlew test",
-            errorOutput = "BUILD FAILED\n5 tests failed",
-            technology = "gradle"
-        )
+        val failed =
+            FailedCommand(
+                command = "./gradlew test",
+                errorOutput = "BUILD FAILED\n5 tests failed",
+                technology = "gradle",
+            )
         var state = TroubleshootingState()
         state = service.recordFailure(state, failed)
         val prompt = service.generateTroubleshootingPrompt(state, failed)
 
         assertTrue(
             prompt.contains("not repeat", ignoreCase = true) ||
-                    prompt.contains("no-repeat", ignoreCase = true) ||
-                    prompt.contains("What not to repeat", ignoreCase = true),
-            "Prompt should contain a no-repeat rule section"
+                prompt.contains("no-repeat", ignoreCase = true) ||
+                prompt.contains("What not to repeat", ignoreCase = true),
+            "Prompt should contain a no-repeat rule section",
         )
     }
 
     @Test
     fun `generated prompt recommends user-run command mode`() {
-        val failed = FailedCommand(
-            command = "npm install",
-            errorOutput = "npm ERR! 404 Not found",
-            technology = "npm"
-        )
+        val failed =
+            FailedCommand(
+                command = "npm install",
+                errorOutput = "npm ERR! 404 Not found",
+                technology = "npm",
+            )
         var state = TroubleshootingState()
         state = service.recordFailure(state, failed)
         val prompt = service.generateTroubleshootingPrompt(state, failed)
 
         assertTrue(
             prompt.contains("run the", ignoreCase = true) || prompt.contains("yourself", ignoreCase = true),
-            "Prompt should recommend user-run command mode"
+            "Prompt should recommend user-run command mode",
         )
     }
 
     @Test
     fun `generated prompt asks for evidence before edits`() {
-        val failed = FailedCommand(
-            command = "pytest",
-            errorOutput = "AssertionError: assert False",
-            technology = "python"
-        )
+        val failed =
+            FailedCommand(
+                command = "pytest",
+                errorOutput = "AssertionError: assert False",
+                technology = "python",
+            )
         var state = TroubleshootingState()
         state = service.recordFailure(state, failed)
         val prompt = service.generateTroubleshootingPrompt(state, failed)
 
         assertTrue(
             prompt.contains("diagnostic", ignoreCase = true) ||
-                    prompt.contains("evidence", ignoreCase = true) ||
-                    prompt.contains("paste", ignoreCase = true),
-            "Prompt should request evidence / diagnostics before suggesting edits"
+                prompt.contains("evidence", ignoreCase = true) ||
+                prompt.contains("paste", ignoreCase = true),
+            "Prompt should request evidence / diagnostics before suggesting edits",
         )
     }
 
     @Test
     fun `generated prompt contains next diagnostic command`() {
-        val failed = FailedCommand(
-            command = "./gradlew test",
-            errorOutput = "BUILD FAILED: tests failed",
-            technology = "gradle"
-        )
+        val failed =
+            FailedCommand(
+                command = "./gradlew test",
+                errorOutput = "BUILD FAILED: tests failed",
+                technology = "gradle",
+            )
         var state = TroubleshootingState()
         state = service.recordFailure(state, failed)
         val prompt = service.generateTroubleshootingPrompt(state, failed)
@@ -320,11 +336,12 @@ class TroubleshootingModeTests {
 
     @Test
     fun `generated prompt contains current phase`() {
-        val failed = FailedCommand(
-            command = "docker build .",
-            errorOutput = "error building image",
-            technology = "docker"
-        )
+        val failed =
+            FailedCommand(
+                command = "docker build .",
+                errorOutput = "error building image",
+                technology = "docker",
+            )
         var state = TroubleshootingState()
         state = service.recordFailure(state, failed)
         val prompt = service.generateTroubleshootingPrompt(state, failed)
@@ -351,9 +368,10 @@ class TroubleshootingModeTests {
     @Test
     fun `recording a new failure resets material changes`() {
         var state = TroubleshootingState()
-        state = service.recordMaterialChange(
-            state, MaterialChange(MaterialChangeCategory.CONFIGURATION_CHANGED, "Fixed config")
-        )
+        state =
+            service.recordMaterialChange(
+                state, MaterialChange(MaterialChangeCategory.CONFIGURATION_CHANGED, "Fixed config"),
+            )
         assertEquals(1, state.materialChanges.size)
 
         val failed = FailedCommand("./gradlew test", "BUILD FAILED", technology = "gradle")
@@ -378,11 +396,11 @@ class TroubleshootingModeTests {
 
         assertTrue(
             prompt.contains("~/.zshrc", ignoreCase = true),
-            "Prompt must mention ~/.zshrc as a protected file"
+            "Prompt must mention ~/.zshrc as a protected file",
         )
         assertTrue(
             prompt.contains("Do NOT", ignoreCase = true) || prompt.contains("do not", ignoreCase = true),
-            "Prompt must contain an explicit prohibition on shell profile edits"
+            "Prompt must contain an explicit prohibition on shell profile edits",
         )
     }
 
@@ -395,36 +413,39 @@ class TroubleshootingModeTests {
 
         assertTrue(
             prompt.contains("session", ignoreCase = true) ||
-                    prompt.contains("session-only", ignoreCase = true) ||
-                    prompt.contains("export JAVA_HOME", ignoreCase = true),
-            "Prompt must recommend session-only exports before persistent changes"
+                prompt.contains("session-only", ignoreCase = true) ||
+                prompt.contains("export JAVA_HOME", ignoreCase = true),
+            "Prompt must recommend session-only exports before persistent changes",
         )
     }
 
     @Test
     fun `known-good checkpoint prevents unrelated JAVA_HOME changes`() {
-        val checkpoint = KnownGoodCheckpoint(
-            command = "./gradlew clean test",
-            javaHome = "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home",
-            javaVersion = "21"
-        )
+        val checkpoint =
+            KnownGoodCheckpoint(
+                command = "./gradlew clean test",
+                javaHome = "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home",
+                javaVersion = "21",
+            )
         var safetyState = ShellSafetyState()
         safetyState = safetyService.recordKnownGoodCheckpoint(safetyState, checkpoint)
 
         // A change request with no real evidence the current value is wrong
-        val unjustifiedRequest = EnvironmentChangeRequest(
-            currentValue = "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home",
-            targetValue = "/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home",
-            evidenceCurrentValueIsWrong = "",   // no evidence
-            whyChangeIsNecessary = "",
-            risk = "breaks build",
-            rollbackPlan = "revert",
-            verificationCommand = "java -version"
-        )
+        val unjustifiedRequest =
+            EnvironmentChangeRequest(
+                currentValue = "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home",
+                targetValue = "/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home",
+                // no evidence
+                evidenceCurrentValueIsWrong = "",
+                whyChangeIsNecessary = "",
+                risk = "breaks build",
+                rollbackPlan = "revert",
+                verificationCommand = "java -version",
+            )
 
         assertFalse(
             safetyService.isEnvironmentChangeJustified(safetyState, unjustifiedRequest),
-            "Must block JAVA_HOME change when known-good checkpoint exists and evidence is empty"
+            "Must block JAVA_HOME change when known-good checkpoint exists and evidence is empty",
         )
     }
 
@@ -434,15 +455,16 @@ class TroubleshootingModeTests {
         var safetyState = ShellSafetyState()
         safetyState = safetyService.recordKnownGoodCheckpoint(safetyState, checkpoint)
 
-        val justifiedRequest = EnvironmentChangeRequest(
-            currentValue = "/old/path",
-            targetValue = "/new/path",
-            evidenceCurrentValueIsWrong = "Build error shows: unsupported class file major version 65",
-            whyChangeIsNecessary = "JDK version mismatch proven by error output",
-            risk = "Low — reverting is trivial",
-            rollbackPlan = "export JAVA_HOME=/old/path",
-            verificationCommand = "java -version && ./gradlew test"
-        )
+        val justifiedRequest =
+            EnvironmentChangeRequest(
+                currentValue = "/old/path",
+                targetValue = "/new/path",
+                evidenceCurrentValueIsWrong = "Build error shows: unsupported class file major version 65",
+                whyChangeIsNecessary = "JDK version mismatch proven by error output",
+                risk = "Low — reverting is trivial",
+                rollbackPlan = "export JAVA_HOME=/old/path",
+                verificationCommand = "java -version && ./gradlew test",
+            )
 
         assertTrue(safetyService.isEnvironmentChangeJustified(safetyState, justifiedRequest))
     }
@@ -452,7 +474,7 @@ class TroubleshootingModeTests {
         val cmd = "sed -i '' '/JAVA_HOME/d' ~/.zshrc"
         assertTrue(
             DestructiveCommandPatterns.isDestructive(cmd),
-            "sed -i against ~/.zshrc must be flagged as destructive"
+            "sed -i against ~/.zshrc must be flagged as destructive",
         )
         assertFalse(safetyService.isSafeToSuggest(cmd))
     }
@@ -462,7 +484,7 @@ class TroubleshootingModeTests {
         val cmd = "echo 'export JAVA_HOME=/path' >> ~/.zshrc"
         assertTrue(
             DestructiveCommandPatterns.isDestructive(cmd),
-            "echo append to ~/.zshrc must be flagged as destructive"
+            "echo append to ~/.zshrc must be flagged as destructive",
         )
         assertFalse(safetyService.isSafeToSuggest(cmd))
     }
@@ -483,28 +505,32 @@ class TroubleshootingModeTests {
 
     @Test
     fun `environment change without full justification is blocked`() {
-        val incompleteRequest = EnvironmentChangeRequest(
-            currentValue = "21",
-            targetValue = "17",
-            evidenceCurrentValueIsWrong = "",  // missing
-            whyChangeIsNecessary = "",          // missing
-            risk = "",
-            rollbackPlan = "",
-            verificationCommand = ""
-        )
+        val incompleteRequest =
+            EnvironmentChangeRequest(
+                currentValue = "21",
+                targetValue = "17",
+                // missing
+                evidenceCurrentValueIsWrong = "",
+                // missing
+                whyChangeIsNecessary = "",
+                risk = "",
+                rollbackPlan = "",
+                verificationCommand = "",
+            )
         assertFalse(
             safetyService.isEnvironmentChangeJustified(ShellSafetyState(), incompleteRequest),
-            "Incomplete justification must block environment change"
+            "Incomplete justification must block environment change",
         )
     }
 
     @Test
     fun `recovery mode is activated when shell profile damage is described`() {
         var safetyState = ShellSafetyState()
-        safetyState = safetyService.activateRecoveryMode(
-            safetyState,
-            "Agent appended JAVA_HOME to ~/.zshrc twice then ran sed -i cleanup and broke the file"
-        )
+        safetyState =
+            safetyService.activateRecoveryMode(
+                safetyState,
+                "Agent appended JAVA_HOME to ~/.zshrc twice then ran sed -i cleanup and broke the file",
+            )
         assertTrue(safetyState.recoveryModeActive)
         assertContains(safetyState.recoveryReason, "JAVA_HOME")
     }
@@ -531,9 +557,9 @@ class TroubleshootingModeTests {
 
         assertTrue(
             prompt.contains("run these commands yourself", ignoreCase = true) ||
-                    prompt.contains("run them yourself", ignoreCase = true) ||
-                    prompt.contains("you run these commands yourself", ignoreCase = true),
-            "Prompt must recommend user runs environment commands themselves"
+                prompt.contains("run them yourself", ignoreCase = true) ||
+                prompt.contains("you run these commands yourself", ignoreCase = true),
+            "Prompt must recommend user runs environment commands themselves",
         )
     }
 
@@ -553,23 +579,26 @@ class TroubleshootingModeTests {
     fun `phase transitions are detected correctly across a full session`() {
         val sessionService = TroubleshootingServiceImpl()
 
-        val toolchainFail = FailedCommand(
-            command = "./gradlew test",
-            errorOutput = "Error: Could not find or load main class org.gradle.wrapper.GradleWrapperMain",
-            technology = "gradle"
-        )
+        val toolchainFail =
+            FailedCommand(
+                command = "./gradlew test",
+                errorOutput = "Error: Could not find or load main class org.gradle.wrapper.GradleWrapperMain",
+                technology = "gradle",
+            )
         var state = sessionService.recordFailure(TroubleshootingState(), toolchainFail)
         assertEquals(DiagnosticPhase.TOOLCHAIN, state.currentPhase)
 
         // After fixing toolchain, a compilation failure appears
-        state = sessionService.recordMaterialChange(
-            state, MaterialChange(MaterialChangeCategory.PATH_OR_TOOLCHAIN_CHANGED, "Installed JDK 21")
-        )
-        val compileFail = FailedCommand(
-            command = "./gradlew compileKotlin",
-            errorOutput = "e: error: unresolved reference: Bar\nCompilation failed.",
-            technology = "gradle"
-        )
+        state =
+            sessionService.recordMaterialChange(
+                state, MaterialChange(MaterialChangeCategory.PATH_OR_TOOLCHAIN_CHANGED, "Installed JDK 21"),
+            )
+        val compileFail =
+            FailedCommand(
+                command = "./gradlew compileKotlin",
+                errorOutput = "e: error: unresolved reference: Bar\nCompilation failed.",
+                technology = "gradle",
+            )
         val previousPhase = state.currentPhase
         state = sessionService.recordFailure(state, compileFail)
 

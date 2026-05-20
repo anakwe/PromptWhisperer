@@ -1,4 +1,6 @@
-# Contributing to Prompt WhispererThanks for helping improve Prompt Whisperer.
+# Contributing to Prompt Whisperer
+
+Thanks for helping improve Prompt Whisperer.
 
 This project prioritizes engineering quality, local-first trust, and explicit control in AI-assisted workflows.
 
@@ -11,9 +13,11 @@ cd PromptWhisperer
 ./gradlew runIde
 ```
 
-## Build and Test
+## Build, Lint, and Format
 
 ```bash
+./gradlew ktlintFormat
+./gradlew ktlintCheck
 ./gradlew clean test buildPlugin
 ```
 
@@ -37,6 +41,7 @@ cd PromptWhisperer
 ## UX Quality Expectations
 
 When changing UI:
+
 - keep generated prompt output visually dominant
 - preserve two-stage clarification workflow
 - keep profile/depth/guardrail explanations clear
@@ -53,6 +58,7 @@ When changing UI:
 ## Pull Request Checklist
 
 - [ ] Builds and tests pass locally
+- [ ] Formatting and lint checks pass (`ktlintFormat`, `ktlintCheck`)
 - [ ] Documentation updated
 - [ ] No unrelated file churn
 - [ ] No machine-local artefacts committed
@@ -61,6 +67,7 @@ When changing UI:
 ## Commit Message Style
 
 Examples:
+
 - `feat: add clarification answer panel and final prompt stage`
 - `feat: refactor prompt builder into composable blocks`
 - `docs: reposition README around implementation planning`

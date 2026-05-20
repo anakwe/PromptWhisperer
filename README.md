@@ -169,6 +169,13 @@ Install from disk in IntelliJ:
 ./gradlew runIde
 ```
 
+## Formatting and Build
+
+```bash
+./gradlew ktlintFormat
+./gradlew build
+```
+
 ## Plugin Packaging
 
 ```bash

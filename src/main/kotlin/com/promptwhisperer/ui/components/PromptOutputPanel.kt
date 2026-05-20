@@ -29,14 +29,16 @@ class PromptOutputPanel {
     private val metadataLabel = JLabel("No prompt generated yet.")
     private val stateLabel = JLabel("Idle")
 
-    private val rawEditor = JTextPane().apply {
-        font = Font(Font.MONOSPACED, Font.PLAIN, 12)
-        isEditable = true
-    }
+    private val rawEditor =
+        JTextPane().apply {
+            font = Font(Font.MONOSPACED, Font.PLAIN, 12)
+            isEditable = true
+        }
 
-    private val markdownPreview = JEditorPane("text/html", "").apply {
-        isEditable = false
-    }
+    private val markdownPreview =
+        JEditorPane("text/html", "").apply {
+            isEditable = false
+        }
 
     private val cardLayout = CardLayout()
     private val cardPanel = JPanel(cardLayout)
@@ -66,7 +68,7 @@ class PromptOutputPanel {
         profileName: String,
         depthName: String,
         enabledGuardrails: Int,
-        generationState: String
+        generationState: String,
     ) {
         rawEditor.text = promptText
         highlightMarkdown()
@@ -90,36 +92,43 @@ class PromptOutputPanel {
 
     fun getPromptText(): String = rawEditor.text
 
-    fun setState(text: String, color: Color) {
+    fun setState(
+        text: String,
+        color: Color,
+    ) {
         stateLabel.text = text
         stateLabel.foreground = color
     }
 
     private fun setupLayout() {
-        val metaPanel = JPanel(BorderLayout(6, 0)).apply {
-            border = BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, Color(220, 220, 220)),
-                BorderFactory.createEmptyBorder(6, 8, 6, 8)
-            )
-            add(metadataLabel, BorderLayout.CENTER)
-            add(stateLabel, BorderLayout.EAST)
-        }
+        val metaPanel =
+            JPanel(BorderLayout(6, 0)).apply {
+                border =
+                    BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 1, 0, Color(220, 220, 220)),
+                        BorderFactory.createEmptyBorder(6, 8, 6, 8),
+                    )
+                add(metadataLabel, BorderLayout.CENTER)
+                add(stateLabel, BorderLayout.EAST)
+            }
 
-        val toolbar = JPanel().apply {
-            border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
-            add(rawModeButton)
-            add(previewModeButton)
-            add(copyButton)
-            add(exportButton)
-        }
+        val toolbar =
+            JPanel().apply {
+                border = BorderFactory.createEmptyBorder(0, 8, 0, 8)
+                add(rawModeButton)
+                add(previewModeButton)
+                add(copyButton)
+                add(exportButton)
+            }
 
         cardPanel.add(JBScrollPane(rawEditor), "raw")
         cardPanel.add(JBScrollPane(markdownPreview), "preview")
 
-        component.border = BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color(220, 220, 220)),
-            BorderFactory.createEmptyBorder(4, 4, 4, 4)
-        )
+        component.border =
+            BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color(220, 220, 220)),
+                BorderFactory.createEmptyBorder(4, 4, 4, 4),
+            )
         component.add(metaPanel, BorderLayout.NORTH)
         component.add(cardPanel, BorderLayout.CENTER)
         component.add(toolbar, BorderLayout.SOUTH)
@@ -146,33 +155,37 @@ class PromptOutputPanel {
             onExport?.invoke(rawEditor.text)
         }
 
-        rawEditor.document.addDocumentListener(object : DocumentListener {
-            override fun insertUpdate(e: DocumentEvent?) = scheduleStyleRefresh()
-            override fun removeUpdate(e: DocumentEvent?) = scheduleStyleRefresh()
-            override fun changedUpdate(e: DocumentEvent?) = scheduleStyleRefresh()
+        rawEditor.document.addDocumentListener(
+            object : DocumentListener {
+                override fun insertUpdate(e: DocumentEvent?) = scheduleStyleRefresh()
 
-            private fun scheduleStyleRefresh() {
-                if (isApplyingStyles || styleRefreshQueued) {
-                    return
-                }
-                styleRefreshQueued = true
-                SwingUtilities.invokeLater {
-                    styleRefreshQueued = false
-                    if (isApplyingStyles) {
-                        return@invokeLater
+                override fun removeUpdate(e: DocumentEvent?) = scheduleStyleRefresh()
+
+                override fun changedUpdate(e: DocumentEvent?) = scheduleStyleRefresh()
+
+                private fun scheduleStyleRefresh() {
+                    if (isApplyingStyles || styleRefreshQueued) {
+                        return
                     }
-                    isApplyingStyles = true
-                    try {
-                        highlightMarkdown()
-                        if (stateLabel.text != "Waiting for analysis") {
-                            setState("Prompt updated", Color(153, 102, 0))
+                    styleRefreshQueued = true
+                    SwingUtilities.invokeLater {
+                        styleRefreshQueued = false
+                        if (isApplyingStyles) {
+                            return@invokeLater
                         }
-                    } finally {
-                        isApplyingStyles = false
+                        isApplyingStyles = true
+                        try {
+                            highlightMarkdown()
+                            if (stateLabel.text != "Waiting for analysis") {
+                                setState("Prompt updated", Color(153, 102, 0))
+                            }
+                        } finally {
+                            isApplyingStyles = false
+                        }
                     }
                 }
-            }
-        })
+            },
+        )
     }
 
     private fun highlightMarkdown() {
@@ -188,23 +201,31 @@ class PromptOutputPanel {
         applyStyle(document, text, "\\*\\*[^*]+\\*\\*", Color(53, 97, 180), true)
     }
 
-    private fun applyStyle(doc: StyledDocument, text: String, regex: String, color: Color, bold: Boolean) {
+    private fun applyStyle(
+        doc: StyledDocument,
+        text: String,
+        regex: String,
+        color: Color,
+        bold: Boolean,
+    ) {
         val pattern = Pattern.compile(regex)
         val matcher = pattern.matcher(text)
-        val style = SimpleAttributeSet().apply {
-            StyleConstants.setForeground(this, color)
-            StyleConstants.setBold(this, bold)
-        }
+        val style =
+            SimpleAttributeSet().apply {
+                StyleConstants.setForeground(this, color)
+                StyleConstants.setBold(this, bold)
+            }
         while (matcher.find()) {
             doc.setCharacterAttributes(matcher.start(), matcher.end() - matcher.start(), style, false)
         }
     }
 
     private fun renderMarkdown(markdown: String): String {
-        val escaped = markdown
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
+        val escaped =
+            markdown
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
 
         val lines = escaped.lines()
         val html = StringBuilder("<html><body style='font-family: -apple-system, Segoe UI, sans-serif; font-size: 12px;'>")
@@ -229,6 +250,3 @@ class PromptOutputPanel {
         return html.toString()
     }
 }
-
-
-

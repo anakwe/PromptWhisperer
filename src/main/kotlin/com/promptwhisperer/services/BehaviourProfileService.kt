@@ -15,6 +15,7 @@ import com.promptwhisperer.models.GuardrailCategory
  */
 interface BehaviourProfileService {
     fun getDefaultGuardrailsForProfile(profile: BehaviourProfile): List<Guardrail>
+
     fun getProfileDescription(profile: BehaviourProfile): String
 }
 
@@ -32,7 +33,8 @@ class BehaviourProfileServiceImpl : BehaviourProfileService {
                         "cq_follow_conventions",
                         "sec_input_validation",
                         "arch_avoid_rewrites",
-                        "op_backwards_compat" -> g.copy(enabled = true)
+                        "op_backwards_compat",
+                        -> g.copy(enabled = true)
                         else -> g.copy(enabled = false)
                     }
                 }
@@ -48,7 +50,8 @@ class BehaviourProfileServiceImpl : BehaviourProfileService {
                         "arch_minimize_deps",
                         "cq_require_docs",
                         "cq_follow_conventions",
-                        "op_backwards_compat" -> g.copy(enabled = true)
+                        "op_backwards_compat",
+                        -> g.copy(enabled = true)
                         else -> g.copy(enabled = false)
                     }
                 }
@@ -57,8 +60,9 @@ class BehaviourProfileServiceImpl : BehaviourProfileService {
             BehaviourProfile.SECURITY_ENGINEER -> {
                 allGuardrails.map { g ->
                     g.copy(
-                        enabled = g.category == GuardrailCategory.SECURITY ||
-                                g.id in listOf("cq_require_tests", "op_backwards_compat")
+                        enabled =
+                            g.category == GuardrailCategory.SECURITY ||
+                                g.id in listOf("cq_require_tests", "op_backwards_compat"),
                     )
                 }
             }
@@ -74,7 +78,8 @@ class BehaviourProfileServiceImpl : BehaviourProfileService {
                         "op_no_cascading",
                         "cq_require_docs",
                         "cq_require_tests",
-                        "sec_no_network" -> g.copy(enabled = true)
+                        "sec_no_network",
+                        -> g.copy(enabled = true)
                         else -> g.copy(enabled = false)
                     }
                 }
@@ -102,7 +107,8 @@ class BehaviourProfileServiceImpl : BehaviourProfileService {
                         "arch_minimize_deps",
                         "sec_input_validation",
                         "cq_require_tests",
-                        "op_rollback_plan" -> g.copy(enabled = true)
+                        "op_rollback_plan",
+                        -> g.copy(enabled = true)
                         else -> g.copy(enabled = false)
                     }
                 }
@@ -114,7 +120,8 @@ class BehaviourProfileServiceImpl : BehaviourProfileService {
                         "cq_require_docs",
                         "cq_require_comments",
                         "cq_follow_conventions",
-                        "cq_require_tests" -> g.copy(enabled = true)
+                        "cq_require_tests",
+                        -> g.copy(enabled = true)
                         else -> g.copy(enabled = false)
                     }
                 }
@@ -127,7 +134,8 @@ class BehaviourProfileServiceImpl : BehaviourProfileService {
                         "arch_avoid_rewrites",
                         "cq_focused_functions",
                         "sec_no_network",
-                        "sec_no_secrets" -> g.copy(enabled = true)
+                        "sec_no_secrets",
+                        -> g.copy(enabled = true)
                         else -> g.copy(enabled = false)
                     }
                 }
@@ -135,33 +143,33 @@ class BehaviourProfileServiceImpl : BehaviourProfileService {
         }
     }
 
-    override fun getProfileDescription(profile: BehaviourProfile): String = when (profile) {
-        BehaviourProfile.BALANCED_ENGINEER ->
-            "Sensible defaults. Build good code today that you won't regret tomorrow."
+    override fun getProfileDescription(profile: BehaviourProfile): String =
+        when (profile) {
+            BehaviourProfile.BALANCED_ENGINEER ->
+                "Sensible defaults. Build good code today that you won't regret tomorrow."
 
-        BehaviourProfile.SENIOR_ARCHITECT ->
-            "Architecture-first. Design for clarity, extensibility, and future team members."
+            BehaviourProfile.SENIOR_ARCHITECT ->
+                "Architecture-first. Design for clarity, extensibility, and future team members."
 
-        BehaviourProfile.SECURITY_ENGINEER ->
-            "Security-focused. Fail safely; assume hostile actors."
+            BehaviourProfile.SECURITY_ENGINEER ->
+                "Security-focused. Fail safely; assume hostile actors."
 
-        BehaviourProfile.DEVOPS_SRE ->
-            "Operations-first. Build to be deployed, monitored, and fixed in production."
+            BehaviourProfile.DEVOPS_SRE ->
+                "Operations-first. Build to be deployed, monitored, and fixed in production."
 
-        BehaviourProfile.RAPID_PROTOTYPE ->
-            "Speed-focused. Get it working first; optimise later."
+            BehaviourProfile.RAPID_PROTOTYPE ->
+                "Speed-focused. Get it working first; optimise later."
 
-        BehaviourProfile.ENTERPRISE_CONSULTANT ->
-            "Comprehensive. Document everything and make compliance auditable."
+            BehaviourProfile.ENTERPRISE_CONSULTANT ->
+                "Comprehensive. Document everything and make compliance auditable."
 
-        BehaviourProfile.TROUBLESHOOTER ->
-            "Diagnosis-first. Diagnose before you operate."
+            BehaviourProfile.TROUBLESHOOTER ->
+                "Diagnosis-first. Diagnose before you operate."
 
-        BehaviourProfile.TEACHING_MODE ->
-            "Educational. Build understanding, not just code."
+            BehaviourProfile.TEACHING_MODE ->
+                "Educational. Build understanding, not just code."
 
-        BehaviourProfile.MINIMALIST ->
-            "Essential-only. Do the simplest thing that could possibly work."
-    }
+            BehaviourProfile.MINIMALIST ->
+                "Essential-only. Do the simplest thing that could possibly work."
+        }
 }
-

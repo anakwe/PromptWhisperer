@@ -13,17 +13,20 @@ interface ClarificationService {
     fun generateClarifications(
         request: String,
         profile: BehaviourProfile = BehaviourProfile.default(),
-        mode: PromptMode = PromptMode.STANDARD
+        mode: PromptMode = PromptMode.STANDARD,
     ): List<ClarificationQuestion>
 
-    fun analyzeRequest(request: String, answers: Map<String, String>): RequestAnalysis
+    fun analyzeRequest(
+        request: String,
+        answers: Map<String, String>,
+    ): RequestAnalysis
 }
 
 class ClarificationServiceImpl : ClarificationService {
     override fun generateClarifications(
         request: String,
         profile: BehaviourProfile,
-        mode: PromptMode
+        mode: PromptMode,
     ): List<ClarificationQuestion> {
         val lower = request.lowercase()
         val questions = mutableListOf<ClarificationQuestion>()
@@ -34,8 +37,8 @@ class ClarificationServiceImpl : ClarificationService {
                 question = "What delivery scope do you want?",
                 category = ClarificationCategory.REQUIREMENTS,
                 suggestedAnswers = listOf("Prototype", "Production-ready", "MVP then harden"),
-                defaultAnswer = "Production-ready"
-            )
+                defaultAnswer = "Production-ready",
+            ),
         )
 
         if (isWebOrGameRequest(lower)) {
@@ -45,8 +48,8 @@ class ClarificationServiceImpl : ClarificationService {
                     question = "Which frontend framework or approach should be used?",
                     category = ClarificationCategory.ARCHITECTURE,
                     suggestedAnswers = listOf("Plain HTML/CSS/JS", "React", "Vue", "Svelte", "No preference"),
-                    defaultAnswer = "No preference"
-                )
+                    defaultAnswer = "No preference",
+                ),
             )
             questions.add(
                 ClarificationQuestion(
@@ -54,8 +57,8 @@ class ClarificationServiceImpl : ClarificationService {
                     question = "Should the app be mobile responsive?",
                     category = ClarificationCategory.UX,
                     suggestedAnswers = listOf("Yes", "No", "Not specified"),
-                    defaultAnswer = "Yes"
-                )
+                    defaultAnswer = "Yes",
+                ),
             )
             questions.add(
                 ClarificationQuestion(
@@ -63,8 +66,8 @@ class ClarificationServiceImpl : ClarificationService {
                     question = "Should keyboard controls, touch controls, or both be supported?",
                     category = ClarificationCategory.UX,
                     suggestedAnswers = listOf("Keyboard", "Touch", "Both"),
-                    defaultAnswer = "Both"
-                )
+                    defaultAnswer = "Both",
+                ),
             )
             questions.add(
                 ClarificationQuestion(
@@ -72,8 +75,8 @@ class ClarificationServiceImpl : ClarificationService {
                     question = "Should score tracking be local-only or persisted?",
                     category = ClarificationCategory.REQUIREMENTS,
                     suggestedAnswers = listOf("Local-only", "Persisted leaderboard", "Not needed"),
-                    defaultAnswer = "Local-only"
-                )
+                    defaultAnswer = "Local-only",
+                ),
             )
             questions.add(
                 ClarificationQuestion(
@@ -81,8 +84,8 @@ class ClarificationServiceImpl : ClarificationService {
                     question = "Should sound effects be included?",
                     category = ClarificationCategory.UX,
                     suggestedAnswers = listOf("Yes", "No", "Optional"),
-                    defaultAnswer = "Optional"
-                )
+                    defaultAnswer = "Optional",
+                ),
             )
             questions.add(
                 ClarificationQuestion(
@@ -90,8 +93,8 @@ class ClarificationServiceImpl : ClarificationService {
                     question = "Should accessibility considerations be included?",
                     category = ClarificationCategory.UX,
                     suggestedAnswers = listOf("Yes", "No", "Basic support"),
-                    defaultAnswer = "Basic support"
-                )
+                    defaultAnswer = "Basic support",
+                ),
             )
         }
 
@@ -100,23 +103,23 @@ class ClarificationServiceImpl : ClarificationService {
                 ClarificationQuestion(
                     id = "q_security_asset",
                     question = "What asset or behaviour is being protected?",
-                    category = ClarificationCategory.SECURITY
-                )
+                    category = ClarificationCategory.SECURITY,
+                ),
             )
             questions.add(
                 ClarificationQuestion(
                     id = "q_threat_model",
                     question = "What threat model should be considered?",
-                    category = ClarificationCategory.SECURITY
-                )
+                    category = ClarificationCategory.SECURITY,
+                ),
             )
             questions.add(
                 ClarificationQuestion(
                     id = "q_compliance",
                     question = "Are there compliance or audit requirements?",
                     category = ClarificationCategory.SECURITY,
-                    suggestedAnswers = listOf("None", "SOC2", "ISO 27001", "GDPR", "Other")
-                )
+                    suggestedAnswers = listOf("None", "SOC2", "ISO 27001", "GDPR", "Other"),
+                ),
             )
             questions.add(
                 ClarificationQuestion(
@@ -124,8 +127,8 @@ class ClarificationServiceImpl : ClarificationService {
                     question = "Should least-privilege access be enforced?",
                     category = ClarificationCategory.SECURITY,
                     suggestedAnswers = listOf("Yes", "No", "Not specified"),
-                    defaultAnswer = "Yes"
-                )
+                    defaultAnswer = "Yes",
+                ),
             )
         }
 
@@ -135,23 +138,23 @@ class ClarificationServiceImpl : ClarificationService {
                     id = "q_platform",
                     question = "Which cloud/platform is targeted?",
                     category = ClarificationCategory.DEPLOYMENT,
-                    suggestedAnswers = listOf("Azure", "AWS", "GCP", "On-prem", "Not specified")
-                )
+                    suggestedAnswers = listOf("Azure", "AWS", "GCP", "On-prem", "Not specified"),
+                ),
             )
             questions.add(
                 ClarificationQuestion(
                     id = "q_environment",
                     question = "Which environment is this for?",
                     category = ClarificationCategory.OPERATIONS,
-                    suggestedAnswers = listOf("Development", "Staging", "Production")
-                )
+                    suggestedAnswers = listOf("Development", "Staging", "Production"),
+                ),
             )
             questions.add(
                 ClarificationQuestion(
                     id = "q_standards",
                     question = "Are there naming/tagging standards or existing modules to follow?",
-                    category = ClarificationCategory.ARCHITECTURE
-                )
+                    category = ClarificationCategory.ARCHITECTURE,
+                ),
             )
             questions.add(
                 ClarificationQuestion(
@@ -159,8 +162,8 @@ class ClarificationServiceImpl : ClarificationService {
                     question = "Should rollback be considered in the plan?",
                     category = ClarificationCategory.OPERATIONS,
                     suggestedAnswers = listOf("Yes", "No", "Not specified"),
-                    defaultAnswer = "Yes"
-                )
+                    defaultAnswer = "Yes",
+                ),
             )
         }
 
@@ -169,37 +172,37 @@ class ClarificationServiceImpl : ClarificationService {
                 ClarificationQuestion(
                     id = "q_error",
                     question = "What error message or stack trace is seen?",
-                    category = ClarificationCategory.REQUIREMENTS
-                )
+                    category = ClarificationCategory.REQUIREMENTS,
+                ),
             )
             questions.add(
                 ClarificationQuestion(
                     id = "q_recent_change",
                     question = "What changed recently?",
-                    category = ClarificationCategory.REQUIREMENTS
-                )
+                    category = ClarificationCategory.REQUIREMENTS,
+                ),
             )
             questions.add(
                 ClarificationQuestion(
                     id = "q_expected",
                     question = "What behaviour was expected?",
-                    category = ClarificationCategory.REQUIREMENTS
-                )
+                    category = ClarificationCategory.REQUIREMENTS,
+                ),
             )
             questions.add(
                 ClarificationQuestion(
                     id = "q_actual",
                     question = "What behaviour actually happened?",
-                    category = ClarificationCategory.REQUIREMENTS
-                )
+                    category = ClarificationCategory.REQUIREMENTS,
+                ),
             )
             questions.add(
                 ClarificationQuestion(
                     id = "q_repro",
                     question = "Are there reliable reproduction steps?",
                     category = ClarificationCategory.TESTING,
-                    suggestedAnswers = listOf("Yes", "No", "Partially")
-                )
+                    suggestedAnswers = listOf("Yes", "No", "Partially"),
+                ),
             )
         }
 
@@ -209,8 +212,8 @@ class ClarificationServiceImpl : ClarificationService {
                 question = "Should tests be added?",
                 category = ClarificationCategory.TESTING,
                 suggestedAnswers = listOf("Unit tests", "Unit + integration", "No tests", "If framework exists"),
-                defaultAnswer = "If framework exists"
-            )
+                defaultAnswer = "If framework exists",
+            ),
         )
         questions.add(
             ClarificationQuestion(
@@ -218,14 +221,17 @@ class ClarificationServiceImpl : ClarificationService {
                 question = "Should deployment or usage instructions be included?",
                 category = ClarificationCategory.DOCUMENTATION,
                 suggestedAnswers = listOf("README only", "README + deployment guide", "No docs"),
-                defaultAnswer = "README + deployment guide"
-            )
+                defaultAnswer = "README + deployment guide",
+            ),
         )
 
         return questions.distinctBy { it.id }
     }
 
-    override fun analyzeRequest(request: String, answers: Map<String, String>): RequestAnalysis {
+    override fun analyzeRequest(
+        request: String,
+        answers: Map<String, String>,
+    ): RequestAnalysis {
         val lower = request.lowercase()
 
         val inferredConcerns = mutableListOf<String>()
@@ -242,7 +248,7 @@ class ClarificationServiceImpl : ClarificationService {
             clarificationQuestions = generateClarifications(request),
             inferredConcerns = inferredConcerns,
             suggestedFramework = suggestedFramework,
-            suggestedArchitecture = suggestedArchitecture
+            suggestedArchitecture = suggestedArchitecture,
         )
     }
 
@@ -290,4 +296,3 @@ class ClarificationServiceImpl : ClarificationService {
     private fun isDistributed(lower: String): Boolean =
         lower.contains("distributed") || lower.contains("concurrent") || lower.contains("async") || lower.contains("multi-thread")
 }
-

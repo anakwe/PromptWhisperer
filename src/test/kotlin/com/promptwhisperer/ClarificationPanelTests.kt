@@ -11,14 +11,15 @@ class ClarificationPanelTests {
     @Test
     fun `questions are stored in panel state and can be cleared`() {
         val panel = ClarificationAnswersPanel()
-        val questions = listOf(
-            ClarificationQuestion(
-                id = "q_controls",
-                question = "Should keyboard controls, touch controls or both be supported?",
-                category = ClarificationCategory.UX,
-                answer = "Both"
+        val questions =
+            listOf(
+                ClarificationQuestion(
+                    id = "q_controls",
+                    question = "Should keyboard controls, touch controls or both be supported?",
+                    category = ClarificationCategory.UX,
+                    answer = "Both",
+                ),
             )
-        )
 
         panel.setQuestions(questions)
         assertTrue(panel.hasQuestions())
@@ -28,4 +29,3 @@ class ClarificationPanelTests {
         assertFalse(panel.hasQuestions())
     }
 }
-

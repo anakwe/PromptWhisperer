@@ -21,10 +21,11 @@ import javax.swing.event.DocumentListener
 class ClarificationAnswersPanel {
     val component: JPanel = JPanel(BorderLayout(0, 8))
 
-    private val helperLabel = JLabel(
-        "Answer what you know. Leave blanks if you want safe assumptions or follow-up questions.",
-        SwingConstants.LEFT
-    )
+    private val helperLabel =
+        JLabel(
+            "Answer what you know. Leave blanks if you want safe assumptions or follow-up questions.",
+            SwingConstants.LEFT,
+        )
     private val statusLabel = JLabel("0 questions answered out of 0")
     private val questionsPanel = JPanel(GridLayout(0, 1, 0, 10))
     private val answerFields = mutableMapOf<String, JBTextArea>()
@@ -33,18 +34,20 @@ class ClarificationAnswersPanel {
     init {
         component.border = BorderFactory.createTitledBorder("Clarification Questions")
 
-        val header = JPanel(BorderLayout(8, 0)).apply {
-            helperLabel.foreground = Color(120, 120, 120)
-            statusLabel.foreground = Color(53, 97, 180)
-            add(helperLabel, BorderLayout.CENTER)
-            add(statusLabel, BorderLayout.EAST)
-        }
+        val header =
+            JPanel(BorderLayout(8, 0)).apply {
+                helperLabel.foreground = Color(120, 120, 120)
+                statusLabel.foreground = Color(53, 97, 180)
+                add(helperLabel, BorderLayout.CENTER)
+                add(statusLabel, BorderLayout.EAST)
+            }
 
-        val scroll = JBScrollPane(questionsPanel).apply {
-            preferredSize = Dimension(0, 210)
-            minimumSize = Dimension(0, 150)
-            border = BorderFactory.createLineBorder(Color(215, 215, 215))
-        }
+        val scroll =
+            JBScrollPane(questionsPanel).apply {
+                preferredSize = Dimension(0, 210)
+                minimumSize = Dimension(0, 150)
+                border = BorderFactory.createLineBorder(Color(215, 215, 215))
+            }
 
         component.add(header, BorderLayout.NORTH)
         component.add(scroll, BorderLayout.CENTER)
@@ -67,31 +70,39 @@ class ClarificationAnswersPanel {
         helperLabel.text = "Answer the questions below, then click Generate Prompt."
 
         questions.forEachIndexed { index, question ->
-            val card = JPanel(BorderLayout(0, 6)).apply {
-                border = BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(Color(205, 205, 205)),
-                    BorderFactory.createEmptyBorder(8, 8, 8, 8)
-                )
-                background = Color(250, 250, 250)
-            }
+            val card =
+                JPanel(BorderLayout(0, 6)).apply {
+                    border =
+                        BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(Color(205, 205, 205)),
+                            BorderFactory.createEmptyBorder(8, 8, 8, 8),
+                        )
+                    background = Color(250, 250, 250)
+                }
 
-            val title = JLabel("Question ${index + 1}  [${question.category.displayName}]").apply {
-                font = font.deriveFont(Font.BOLD)
-                foreground = Color(59, 89, 152)
-            }
+            val title =
+                JLabel("Question ${index + 1}  [${question.category.displayName}]").apply {
+                    font = font.deriveFont(Font.BOLD)
+                    foreground = Color(59, 89, 152)
+                }
 
             val prompt = JLabel(question.question)
-            val answerInput = JBTextArea(3, 10).apply {
-                lineWrap = true
-                wrapStyleWord = true
-                text = question.answer.ifBlank { question.defaultAnswer.orEmpty() }
-                toolTipText = "Leave blank to use 'Not specified' in final prompt"
-            }
-            answerInput.document.addDocumentListener(object : DocumentListener {
-                override fun insertUpdate(e: DocumentEvent?) = updateStatus()
-                override fun removeUpdate(e: DocumentEvent?) = updateStatus()
-                override fun changedUpdate(e: DocumentEvent?) = updateStatus()
-            })
+            val answerInput =
+                JBTextArea(3, 10).apply {
+                    lineWrap = true
+                    wrapStyleWord = true
+                    text = question.answer.ifBlank { question.defaultAnswer.orEmpty() }
+                    toolTipText = "Leave blank to use 'Not specified' in final prompt"
+                }
+            answerInput.document.addDocumentListener(
+                object : DocumentListener {
+                    override fun insertUpdate(e: DocumentEvent?) = updateStatus()
+
+                    override fun removeUpdate(e: DocumentEvent?) = updateStatus()
+
+                    override fun changedUpdate(e: DocumentEvent?) = updateStatus()
+                },
+            )
 
             answerFields[question.id] = answerInput
 
@@ -112,9 +123,10 @@ class ClarificationAnswersPanel {
 
     fun hasQuestions(): Boolean = currentQuestions.isNotEmpty()
 
-    fun answersMap(): Map<String, String> = currentQuestions.associate { question ->
-        question.id to (answerFields[question.id]?.text?.trim().orEmpty())
-    }
+    fun answersMap(): Map<String, String> =
+        currentQuestions.associate { question ->
+            question.id to (answerFields[question.id]?.text?.trim().orEmpty())
+        }
 
     fun questionsWithAnswers(): List<ClarificationQuestion> {
         return currentQuestions.map { question ->

@@ -17,7 +17,7 @@ import javax.swing.JPanel
  * Guardrail configuration panel with grouped categories and reset-to-defaults support.
  */
 class GuardrailSelectionPanel(
-    private val behaviourProfileService: BehaviourProfileService
+    private val behaviourProfileService: BehaviourProfileService,
 ) {
     val component: JPanel = JPanel(BorderLayout(0, 6))
 
@@ -31,8 +31,9 @@ class GuardrailSelectionPanel(
     }
 
     fun applyDefaults(profile: BehaviourProfile) {
-        val defaults = behaviourProfileService.getDefaultGuardrailsForProfile(profile)
-            .associateBy { it.id }
+        val defaults =
+            behaviourProfileService.getDefaultGuardrailsForProfile(profile)
+                .associateBy { it.id }
 
         checkboxById.forEach { (id, checkBox) ->
             checkBox.isSelected = defaults[id]?.enabled == true
@@ -41,10 +42,11 @@ class GuardrailSelectionPanel(
     }
 
     fun selectedGuardrails(): List<Guardrail> {
-        val selectedIds = checkboxById
-            .filterValues { it.isSelected }
-            .keys
-            .toSet()
+        val selectedIds =
+            checkboxById
+                .filterValues { it.isSelected }
+                .keys
+                .toSet()
 
         return Guardrail.all().map { guardrail ->
             guardrail.copy(enabled = selectedIds.contains(guardrail.id))
@@ -73,11 +75,12 @@ class GuardrailSelectionPanel(
             categoriesPanel.add(buildCategoryPanel(category))
         }
 
-        val footer = JPanel(BorderLayout()).apply {
-            add(enabledCountLabel, BorderLayout.WEST)
-            add(resetButton, BorderLayout.EAST)
-            border = BorderFactory.createEmptyBorder(0, 0, 2, 0)
-        }
+        val footer =
+            JPanel(BorderLayout()).apply {
+                add(enabledCountLabel, BorderLayout.WEST)
+                add(resetButton, BorderLayout.EAST)
+                border = BorderFactory.createEmptyBorder(0, 0, 2, 0)
+            }
 
         component.border = BorderFactory.createTitledBorder("Guardrails")
         component.add(categoriesPanel, BorderLayout.CENTER)
@@ -92,9 +95,10 @@ class GuardrailSelectionPanel(
         Guardrail.all()
             .filter { it.category == category }
             .forEach { guardrail ->
-                val checkBox = JCheckBox(guardrail.name).apply {
-                    toolTipText = guardrail.description
-                }
+                val checkBox =
+                    JCheckBox(guardrail.name).apply {
+                        toolTipText = guardrail.description
+                    }
                 checkboxById[guardrail.id] = checkBox
                 panel.add(checkBox)
             }
@@ -102,17 +106,16 @@ class GuardrailSelectionPanel(
         return panel
     }
 
-    private fun categoryTitle(category: GuardrailCategory): String = when (category) {
-        GuardrailCategory.ARCHITECTURE -> "Architecture"
-        GuardrailCategory.SECURITY -> "Security"
-        GuardrailCategory.CODE_QUALITY -> "Code Quality"
-        GuardrailCategory.OPERATIONAL -> "Operational Safety"
-    }
+    private fun categoryTitle(category: GuardrailCategory): String =
+        when (category) {
+            GuardrailCategory.ARCHITECTURE -> "Architecture"
+            GuardrailCategory.SECURITY -> "Security"
+            GuardrailCategory.CODE_QUALITY -> "Code Quality"
+            GuardrailCategory.OPERATIONAL -> "Operational Safety"
+        }
 
     private fun refreshEnabledCount() {
         enabledCountLabel.text = "Enabled guardrails: ${enabledCount()}"
         enabledCountLabel.foreground = if (enabledCount() > 0) Color(45, 127, 84) else Color(153, 102, 0)
     }
 }
-
-

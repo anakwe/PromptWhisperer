@@ -11,11 +11,12 @@ class ClarificationServiceTests {
 
     @Test
     fun `web game request generates practical ux and framework questions`() {
-        val questions = service.generateClarifications(
-            request = "Build a small Flappy Bird style web game",
-            profile = BehaviourProfile.BALANCED_ENGINEER,
-            mode = PromptMode.STANDARD
-        )
+        val questions =
+            service.generateClarifications(
+                request = "Build a small Flappy Bird style web game",
+                profile = BehaviourProfile.BALANCED_ENGINEER,
+                mode = PromptMode.STANDARD,
+            )
 
         val ids = questions.map { it.id }.toSet()
         assertTrue(ids.contains("q_frontend_approach"))
@@ -26,11 +27,12 @@ class ClarificationServiceTests {
 
     @Test
     fun `security mode adds threat and compliance clarifications`() {
-        val questions = service.generateClarifications(
-            request = "Review login flow",
-            profile = BehaviourProfile.SECURITY_ENGINEER,
-            mode = PromptMode.SECURITY_REVIEW
-        )
+        val questions =
+            service.generateClarifications(
+                request = "Review login flow",
+                profile = BehaviourProfile.SECURITY_ENGINEER,
+                mode = PromptMode.SECURITY_REVIEW,
+            )
 
         val ids = questions.map { it.id }.toSet()
         assertTrue(ids.contains("q_security_asset"))
@@ -38,4 +40,3 @@ class ClarificationServiceTests {
         assertTrue(ids.contains("q_compliance"))
     }
 }
-

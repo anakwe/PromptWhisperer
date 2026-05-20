@@ -3,11 +3,10 @@ package com.promptwhisperer.ui
 import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
-import com.intellij.ui.components.JBTextField
 import com.promptwhisperer.models.BehaviourProfile
+import com.promptwhisperer.models.ClarificationQuestion
 import com.promptwhisperer.models.PromptDepth
 import com.promptwhisperer.models.PromptSessionConfig
-import com.promptwhisperer.models.ClarificationQuestion
 import com.promptwhisperer.services.BehaviourProfileServiceImpl
 import com.promptwhisperer.services.ClarificationServiceImpl
 import com.promptwhisperer.services.PromptBuilderImpl
@@ -19,13 +18,11 @@ import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import javax.swing.BorderFactory
 import javax.swing.JButton
-import javax.swing.JCheckBox
 import javax.swing.JComboBox
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JSeparator
 import javax.swing.UIManager
-import javax.swing.border.TitledBorder
 
 /**
  * Refactored Prompt Whisperer UI Panel.
@@ -49,28 +46,31 @@ class PromptWhispererPanelV2(private val project: Project) {
     private val promptDepthSelector = JComboBox(PromptDepth.values())
 
     // ─── Inputs ───────────────────────────────────────────────────────────────
-    private val taskInputArea = JBTextArea(6, 50).apply {
-        lineWrap = true
-        wrapStyleWord = true
-        text = "Example: Build a simple demo website with an embedded video, responsive layout, and README instructions."
-    }
+    private val taskInputArea =
+        JBTextArea(6, 50).apply {
+            lineWrap = true
+            wrapStyleWord = true
+            text = "Example: Build a simple demo website with an embedded video, responsive layout, and README instructions."
+        }
 
     // ─── Outputs ──────────────────────────────────────────────────────────────
-    private val promptPreview = JBTextArea().apply {
-        isEditable = true
-        lineWrap = true
-        wrapStyleWord = true
-        font = Font(Font.MONOSPACED, Font.PLAIN, 12)
-        foreground = Color.GRAY
-        text = "(No prompt generated yet — describe your task and click Analyse Request.)"
-    }
+    private val promptPreview =
+        JBTextArea().apply {
+            isEditable = true
+            lineWrap = true
+            wrapStyleWord = true
+            font = Font(Font.MONOSPACED, Font.PLAIN, 12)
+            foreground = Color.GRAY
+            text = "(No prompt generated yet — describe your task and click Analyse Request.)"
+        }
 
-    private val activityLog = JBTextArea().apply {
-        isEditable = false
-        lineWrap = true
-        wrapStyleWord = true
-        font = Font(Font.MONOSPACED, Font.PLAIN, 11)
-    }
+    private val activityLog =
+        JBTextArea().apply {
+            isEditable = false
+            lineWrap = true
+            wrapStyleWord = true
+            font = Font(Font.MONOSPACED, Font.PLAIN, 11)
+        }
 
     // ─── Buttons ──────────────────────────────────────────────────────────────
     private val analyseButton = JButton("🔍  Analyse Request")
@@ -248,11 +248,12 @@ class PromptWhispererPanelV2(private val project: Project) {
             val depth = promptDepthSelector.selectedItem as? PromptDepth ?: PromptDepth.default()
             val guardrails = behaviourProfileService.getDefaultGuardrailsForProfile(profile)
 
-            sessionConfig = PromptSessionConfig(
-                behaviourProfile = profile,
-                promptDepth = depth,
-                enabledGuardrails = guardrails
-            )
+            sessionConfig =
+                PromptSessionConfig(
+                    behaviourProfile = profile,
+                    promptDepth = depth,
+                    enabledGuardrails = guardrails,
+                )
 
             val prompt = promptBuilder.buildImplementationPrompt(task, sessionConfig)
             setPrompt(prompt)
@@ -308,4 +309,3 @@ class PromptWhispererPanelV2(private val project: Project) {
         clipboard.setContents(StringSelection(text), null)
     }
 }
-

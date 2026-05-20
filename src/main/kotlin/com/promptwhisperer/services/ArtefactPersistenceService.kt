@@ -2,9 +2,9 @@ package com.promptwhisperer.services
 
 import com.intellij.openapi.project.Project
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.builtins.ListSerializer
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -15,7 +15,10 @@ import java.time.format.DateTimeFormatter
  * Maintains an `index.json` with SHA-256 integrity hashes.
  */
 interface ArtefactPersistenceService {
-    fun savePromptArtefact(promptText: String, project: Project): PromptArtefactEntry
+    fun savePromptArtefact(
+        promptText: String,
+        project: Project,
+    ): PromptArtefactEntry
 }
 
 @Serializable
@@ -27,7 +30,7 @@ data class IndexEntry(
     val project_name: String?,
     val plugin_version: String,
     val schema_version: Int = 1,
-    val sha256: String
+    val sha256: String,
 )
 
 data class PromptArtefactEntry(val filename: String, val createdAt: String, val sha256: String)
@@ -40,7 +43,10 @@ class ArtefactPersistenceServiceImpl(private val project: Project) : ArtefactPer
 
     private val pluginVersion = "0.1.0"
 
-    override fun savePromptArtefact(promptText: String, project: Project): PromptArtefactEntry {
+    override fun savePromptArtefact(
+        promptText: String,
+        project: Project,
+    ): PromptArtefactEntry {
         if (!promptsDir.exists()) {
             promptsDir.mkdirs()
         }
@@ -55,29 +61,37 @@ class ArtefactPersistenceServiceImpl(private val project: Project) : ArtefactPer
         val sha = HashingServiceImpl().sha256(contents.toByteArray())
 
         // update index atomically
-        val entries = if (indexFile.exists()) {
-            try {
-                json.decodeFromString(ListSerializer(IndexEntry.serializer()), indexFile.readText())
-            } catch (e: Exception) {
+        val entries =
+            if (indexFile.exists()) {
+                try {
+                    json.decodeFromString(ListSerializer(IndexEntry.serializer()), indexFile.readText())
+                } catch (e: Exception) {
+                    emptyList()
+                }
+            } else {
                 emptyList()
             }
-        } else emptyList()
-        val newEntry = IndexEntry(
-            artefact_id = java.util.UUID.randomUUID().toString(),
-            filename = "prompts/$filename",
-            created_at = now.toString(),
-            task_summary = promptText.lines().firstOrNull() ?: "",
-            project_name = project.name,
-            plugin_version = pluginVersion,
-            sha256 = sha
-        )
+        val newEntry =
+            IndexEntry(
+                artefact_id = java.util.UUID.randomUUID().toString(),
+                filename = "prompts/$filename",
+                created_at = now.toString(),
+                task_summary = promptText.lines().firstOrNull() ?: "",
+                project_name = project.name,
+                plugin_version = pluginVersion,
+                sha256 = sha,
+            )
         val updated = entries + newEntry
         indexFile.parentFile?.mkdirs()
         indexFile.writeText(json.encodeToString(updated))
         return PromptArtefactEntry(filename, now.toString(), sha)
     }
 
-    private fun buildFrontMatter(now: Instant, project: Project, taskSlug: String): String {
+    private fun buildFrontMatter(
+        now: Instant,
+        project: Project,
+        taskSlug: String,
+    ): String {
         val iso = DateTimeFormatter.ISO_INSTANT.format(now)
         val projectName = project.name
         return """
@@ -90,6 +104,6 @@ class ArtefactPersistenceServiceImpl(private val project: Project) : ArtefactPer
             task_slug: $taskSlug
             source: prompt-whisperer-intellij-plugin
             ---
-        """.trimIndent()
+            """.trimIndent()
     }
 }

@@ -10,7 +10,7 @@ data class FilterResult(
     val safeFiles: List<String>,
     val smallFileContents: Map<String, String>,
     val excluded: List<String>,
-    val projectName: String?
+    val projectName: String?,
 )
 
 interface SecurityFilterService {
@@ -19,19 +19,20 @@ interface SecurityFilterService {
 
 class SecurityFilterServiceImpl : SecurityFilterService {
     // Blocked filename patterns and globs
-    private val blockedPatterns = listOf(
-        Pattern.compile(".*\\.pem$", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*\\.key$", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*\\.p12$", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*\\.jks$", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("id_rsa", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("id_ed25519", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*\\.env.*", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*secrets.*", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*credentials.*", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(".*\\.tfvars$", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("terraform.tfstate.*", Pattern.CASE_INSENSITIVE)
-    )
+    private val blockedPatterns =
+        listOf(
+            Pattern.compile(".*\\.pem$", Pattern.CASE_INSENSITIVE),
+            Pattern.compile(".*\\.key$", Pattern.CASE_INSENSITIVE),
+            Pattern.compile(".*\\.p12$", Pattern.CASE_INSENSITIVE),
+            Pattern.compile(".*\\.jks$", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("id_rsa", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("id_ed25519", Pattern.CASE_INSENSITIVE),
+            Pattern.compile(".*\\.env.*", Pattern.CASE_INSENSITIVE),
+            Pattern.compile(".*secrets.*", Pattern.CASE_INSENSITIVE),
+            Pattern.compile(".*credentials.*", Pattern.CASE_INSENSITIVE),
+            Pattern.compile(".*\\.tfvars$", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("terraform.tfstate.*", Pattern.CASE_INSENSITIVE),
+        )
 
     override fun filterContext(raw: SafeProjectContext): FilterResult {
         val safeFiles = mutableListOf<String>()

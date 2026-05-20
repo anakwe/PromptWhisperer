@@ -19,35 +19,41 @@ import com.promptwhisperer.models.PromptSessionConfig
  * This avoids giant template strings and allows dynamic composition.
  */
 interface PromptBuilder {
-    fun buildImplementationPrompt(task: String, config: PromptSessionConfig): String
+    fun buildImplementationPrompt(
+        task: String,
+        config: PromptSessionConfig,
+    ): String
 }
 
 class PromptBuilderImpl : PromptBuilder {
-    private val blocks: List<PromptBlock> = listOf(
-        CorePromptBlock(),
-        BehaviourProfileBlock(),
-        PromptDepthBlock(),
-        ClarificationAnswersBlock(),
-        PlanningBalanceBlock(),
-        ImplementationConsiderationsBlock(),
-        RecommendedArchitectureBlock(),
-        EngineeringTradeOffsBlock(),
-        SuggestedDeliveryPrioritiesBlock(),
-        ArchitectureBlock(),
-        SecurityBlock(),
-        TestingBlock(),
-        DocumentationBlock(),
-        OperationalBlock(),
-        ModeSpecificBlock(),
-        ConstraintsBlock(),
-        OutputExpectationsBlock()
-    )
+    private val blocks: List<PromptBlock> =
+        listOf(
+            CorePromptBlock(),
+            BehaviourProfileBlock(),
+            PromptDepthBlock(),
+            ClarificationAnswersBlock(),
+            PlanningBalanceBlock(),
+            ImplementationConsiderationsBlock(),
+            RecommendedArchitectureBlock(),
+            EngineeringTradeOffsBlock(),
+            SuggestedDeliveryPrioritiesBlock(),
+            ArchitectureBlock(),
+            SecurityBlock(),
+            TestingBlock(),
+            DocumentationBlock(),
+            OperationalBlock(),
+            ModeSpecificBlock(),
+            ConstraintsBlock(),
+            OutputExpectationsBlock(),
+        )
 
-    override fun buildImplementationPrompt(task: String, config: PromptSessionConfig): String {
+    override fun buildImplementationPrompt(
+        task: String,
+        config: PromptSessionConfig,
+    ): String {
         val context = PromptBuildContext(task = task, config = config)
         return blocks
             .mapNotNull { it.render(context).takeIf { output -> output.isNotBlank() } }
             .joinToString("\n\n")
     }
 }
-

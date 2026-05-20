@@ -9,8 +9,7 @@ enum class PromptMode(val displayName: String, val description: String) {
     DEBUGGING("Debugging Mode", "Evidence-driven diagnosis and fix strategy."),
     SECURITY_REVIEW("Security Review Mode", "Threat-aware implementation and secure defaults."),
     TEST_GENERATION("Test Generation Mode", "Implementation prompts with testing emphasis."),
-    TROUBLESHOOTING("Troubleshooting Mode", "Failure analysis and remediation guidance")
-
+    TROUBLESHOOTING("Troubleshooting Mode", "Failure analysis and remediation guidance"),
     ;
 
     override fun toString(): String = displayName
@@ -27,7 +26,7 @@ enum class ClarificationCategory(val displayName: String) {
     OPERATIONS("Operations"),
     DOCUMENTATION("Documentation"),
     UX("UX"),
-    DEPLOYMENT("Deployment")
+    DEPLOYMENT("Deployment"),
 }
 
 /**
@@ -39,7 +38,7 @@ data class ClarificationQuestion(
     val category: ClarificationCategory,
     var answer: String = "",
     val suggestedAnswers: List<String> = emptyList(),
-    val defaultAnswer: String? = null
+    val defaultAnswer: String? = null,
 ) {
     fun resolvedAnswer(): String = answer.trim().ifBlank { "Not specified" }
 }
@@ -52,7 +51,7 @@ data class RequestAnalysis(
     val clarificationQuestions: List<ClarificationQuestion>,
     val inferredConcerns: List<String> = emptyList(),
     val suggestedFramework: String? = null,
-    val suggestedArchitecture: String? = null
+    val suggestedArchitecture: String? = null,
 )
 
 /**
@@ -64,5 +63,5 @@ data class PromptSessionConfig(
     val promptDepth: PromptDepth = PromptDepth.STANDARD,
     val enabledGuardrails: List<Guardrail> = Guardrail.all().filter { it.enabled },
     val requestAnalysis: RequestAnalysis? = null,
-    val clarificationQuestions: List<ClarificationQuestion> = emptyList()
+    val clarificationQuestions: List<ClarificationQuestion> = emptyList(),
 )
