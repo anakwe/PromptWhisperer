@@ -91,6 +91,8 @@ class PromptClarificationTests {
 
         assertTrue(prompt.contains("Reasoning stance: Threat-model-first architect"))
         assertTrue(prompt.contains("Threat boundary review and least-privilege checks"))
+        assertTrue(prompt.contains("trust boundar", ignoreCase = true))
+        assertTrue(prompt.contains("least privilege", ignoreCase = true))
     }
 
     @Test
@@ -108,6 +110,8 @@ class PromptClarificationTests {
         assertTrue(prompt.contains("Reasoning stance: MVP delivery coach"))
         assertTrue(prompt.contains("Prioritize a playable, testable MVP slice first."))
         assertTrue(prompt.contains("Deliver playable MVP slice before optional architecture hardening"))
+        assertTrue(prompt.contains("## Conflict Detected"))
+        assertTrue(prompt.contains("Recommended interpretation:"))
     }
 
     @Test
