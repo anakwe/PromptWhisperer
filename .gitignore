@@ -26,3 +26,4 @@ gradle-*.zip
 *.keystore
 secrets.*
 
+.ai/
