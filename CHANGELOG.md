@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-23
+
 ### Added
 - Two-stage workflow: request analysis followed by clarification answers before final prompt generation.
 - Dominant prompt workspace with metadata banner and generation state indicators.
@@ -45,6 +47,18 @@ All notable changes to this project are documented here.
 - Clarification answers are synthesized into engineering implications instead of being treated as plain key-value metadata.
 - Behaviour profiles now produce stronger reasoning voice differences (e.g., Security Engineer threat-model-first, Rapid Prototype MVP-coach).
 - GitHub community templates migrated to concise Markdown issue templates and a streamlined pull request template.
+
+### Fixed
+- Added strict domain-gated clarification generation so game-oriented questions are not emitted for non-game prompts.
+- Added confidence-threshold handling for domain-specific clarification sets with neutral fallback questions when confidence is low.
+- Fixed conflict detection so explicit negative auth requirements (for example, "Do not build authentication initially") override generic authentication inference.
+- Fixed architecture recommendation precedence so explicit source stack choices override clarification answers like "No preference".
+- Added explicit frontend/backend/storage extraction from source prompts when concrete technologies are already specified.
+- Added regressions for context-isolation, auth-conflict suppression, and architecture merge precedence.
+
+### Docs
+- Updated release workflow examples to v0.2.0 in `docs/RELEASE_PROCESS.md`.
+- Updated release metadata (`README.md` badge and `gradle.properties`) for v0.2.0.
 
 ### Security
 - Strengthened visible trust boundaries in docs and workflow messaging (local-first, no hidden network/telemetry).

@@ -2,7 +2,7 @@
 
 ![Build](https://img.shields.io/badge/build-local%20tests-passing-brightgreen)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
-![Release](https://img.shields.io/badge/release-0.1.0-purple)
+![Release](https://img.shields.io/badge/release-0.2.0-purple)
 ![Local-first](https://img.shields.io/badge/local--first-yes-0a7f5a)
 ![No telemetry](https://img.shields.io/badge/no%20telemetry-default-important)
 

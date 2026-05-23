@@ -2,6 +2,7 @@ package com.promptwhisperer.services
 
 import com.promptwhisperer.models.BehaviourProfile
 import com.promptwhisperer.models.ClarificationQuestion
+import com.promptwhisperer.models.DomainProfile
 import com.promptwhisperer.models.PromptDepth
 import com.promptwhisperer.models.PromptSessionConfig
 
@@ -9,6 +10,9 @@ import com.promptwhisperer.models.PromptSessionConfig
  * Rule-based inference engine that transforms request+clarifications into planning guidance.
  */
 class InferenceEngine {
+    private val domainProfiler = DomainProfiler()
+    private val contaminationDetector = ContextContaminationDetector(domainProfiler)
+
     /**
      * Computes all reasoning outputs used by synthesis-focused prompt blocks.
      */
@@ -16,6 +20,14 @@ class InferenceEngine {
         task: String,
         config: PromptSessionConfig,
     ): PromptInference {
+        val domainProfile = domainProfiler.infer(task)
+        val contaminationWarnings =
+            if (config.enableContaminationDetection) {
+                contaminationDetector.detect(task, config.inheritedAssumptions)
+            } else {
+                emptyList()
+            }
+
         return PromptInference(
             voiceFrame = inferVoiceFrame(config.behaviourProfile),
             voiceInstructions = inferVoiceInstructions(config.behaviourProfile),
@@ -27,7 +39,24 @@ class InferenceEngine {
             tradeoffs = inferTradeoffs(task, config),
             deliveryPriorities = inferDeliveryPriorities(task, config),
             recommendedArchitecture = inferRecommendedArchitecture(task, config),
+            domainProfile = domainProfile,
+            contaminationWarnings = contaminationWarnings,
+            contextSources = inferContextSources(config),
         )
+    }
+
+    private fun inferContextSources(config: PromptSessionConfig): List<String> {
+        val sources = mutableListOf("current prompt")
+        if (config.clarificationQuestions.isNotEmpty()) {
+            sources.add("current clarification answers")
+        }
+        if (config.requestAnalysis != null) {
+            sources.add("inferred request analysis")
+        }
+        if (config.inheritedAssumptions.isNotEmpty()) {
+            sources.add("reused enhancement memory")
+        }
+        return sources
     }
 
     /**
@@ -142,9 +171,10 @@ class InferenceEngine {
             )
         }
 
-        val authRequested = containsAny(lowerTask, "auth", "authentication", "login", "oauth", "facebook")
+        val authRequested = isAuthenticationImplementationRequested(lowerTask)
+        val authExplicitlyDeferred = isAuthenticationExplicitlyDeferred(lowerTask)
         val threatModelAnswer = answers["q_threat_model"]
-        if (authRequested && (threatModelAnswer == null || threatModelAnswer.equals("Not specified", ignoreCase = true))) {
+        if (authRequested && !authExplicitlyDeferred && (threatModelAnswer == null || threatModelAnswer.equals("Not specified", ignoreCase = true))) {
             conflicts.add(
                 ConflictInsight(
                     summary =
@@ -420,15 +450,36 @@ class InferenceEngine {
         val lowerTask = task.lowercase()
         val answers = answers(config.clarificationQuestions)
 
-        val frontendApproach = answers["q_frontend_approach"]
+        val frontendApproach = normalizedPreferenceOrNull(answers["q_frontend_approach"])
+        val explicitFrontend = inferExplicitFrontendStack(lowerTask)
+        val backendApproach =
+            normalizedPreferenceOrNull(answers["q_backend"]) ?: normalizedPreferenceOrNull(answers["q_backend_stack"])
+        val explicitBackend = inferExplicitBackendStack(lowerTask)
+        val storageApproach =
+            normalizedPreferenceOrNull(answers["q_storage"]) ?: normalizedPreferenceOrNull(answers["q_storage_choice"])
+        val explicitStorage = inferExplicitStorageChoice(lowerTask)
         val scoreTracking = answers["q_score_tracking"]
 
-        if (frontendApproach != null && frontendApproach.isNotBlank() && frontendApproach != "Not specified") {
+        if (frontendApproach != null) {
             architecture.add("Frontend: $frontendApproach")
+        } else if (explicitFrontend != null) {
+            architecture.add("Frontend: $explicitFrontend")
         } else if (lowerTask.contains("game")) {
             architecture.add("Frontend: lightweight Canvas-based game loop")
         } else {
             architecture.add("Frontend: align with existing project conventions")
+        }
+
+        if (backendApproach != null) {
+            architecture.add("Backend: $backendApproach")
+        } else if (explicitBackend != null) {
+            architecture.add("Backend: $explicitBackend")
+        }
+
+        if (storageApproach != null) {
+            architecture.add("Storage: $storageApproach")
+        } else if (explicitStorage != null) {
+            architecture.add("Storage: $explicitStorage")
         }
 
         if (lowerTask.contains("facebook")) {
@@ -490,6 +541,86 @@ class InferenceEngine {
         return questions.associate { it.id to it.resolvedAnswer() }
     }
 
+    private fun normalizedPreferenceOrNull(value: String?): String? {
+        val normalized = value?.trim().orEmpty()
+        if (normalized.isBlank()) {
+            return null
+        }
+        if (normalized.equals("Not specified", ignoreCase = true) ||
+            normalized.equals("No preference", ignoreCase = true) ||
+            normalized.equals("None", ignoreCase = true)
+        ) {
+            return null
+        }
+        return normalized
+    }
+
+    private fun inferExplicitFrontendStack(lowerTask: String): String? {
+        val technologies = mutableListOf<String>()
+        if (containsAny(lowerTask, "react")) technologies.add("React")
+        if (containsAny(lowerTask, "typescript", "typescript,")) technologies.add("TypeScript")
+        if (containsAny(lowerTask, "tailwind")) technologies.add("Tailwind CSS")
+        if (containsAny(lowerTask, "shadcn", "shadcn/ui")) technologies.add("shadcn/ui")
+        if (technologies.isNotEmpty()) {
+            return technologies.joinToString(" + ")
+        }
+
+        return when {
+            containsAny(lowerTask, "vue") -> "Vue"
+            containsAny(lowerTask, "svelte") -> "Svelte"
+            containsAny(lowerTask, "angular") -> "Angular"
+            containsAny(lowerTask, "plain html", "vanilla js", "no framework") -> "Plain HTML/CSS/JS"
+            else -> null
+        }
+    }
+
+    private fun inferExplicitBackendStack(lowerTask: String): String? =
+        when {
+            containsAny(lowerTask, "spring boot") -> "Spring Boot"
+            containsAny(lowerTask, "asp.net", "dotnet", ".net") -> "ASP.NET"
+            containsAny(lowerTask, "node", "express", "nestjs") -> "Node.js"
+            containsAny(lowerTask, "fastapi") -> "FastAPI"
+            containsAny(lowerTask, "django") -> "Django"
+            containsAny(lowerTask, "flask") -> "Flask"
+            else -> null
+        }
+
+    private fun inferExplicitStorageChoice(lowerTask: String): String? =
+        when {
+            containsAny(lowerTask, "postgres", "postgresql") -> "PostgreSQL"
+            containsAny(lowerTask, "mysql") -> "MySQL"
+            containsAny(lowerTask, "sqlite") -> "SQLite"
+            containsAny(lowerTask, "mongodb", "mongo") -> "MongoDB"
+            containsAny(lowerTask, "redis") -> "Redis"
+            else -> null
+        }
+
+    private fun isAuthenticationImplementationRequested(lowerTask: String): Boolean {
+        val hasAuthSignal = containsAny(lowerTask, "auth", "authentication", "login", "oauth", "facebook login")
+        if (!hasAuthSignal) {
+            return false
+        }
+        return !isAuthenticationExplicitlyDeferred(lowerTask)
+    }
+
+    private fun isAuthenticationExplicitlyDeferred(lowerTask: String): Boolean {
+        return containsAny(
+            lowerTask,
+            "do not build authentication",
+            "don't build authentication",
+            "do not implement authentication",
+            "don't implement authentication",
+            "authentication is not required",
+            "no authentication initially",
+            "without authentication",
+            "skip authentication",
+            "defer authentication",
+            "auth later",
+            "authentication later",
+            "no login initially",
+        )
+    }
+
     private fun containsAny(
         text: String,
         vararg needles: String,
@@ -510,10 +641,12 @@ data class PromptInference(
     val tradeoffs: List<String>,
     val deliveryPriorities: List<String>,
     val recommendedArchitecture: List<String>,
+    val domainProfile: DomainProfile,
+    val contaminationWarnings: List<String>,
+    val contextSources: List<String>,
 )
 
 data class ConflictInsight(
     val summary: String,
     val recommendations: List<String>,
 )
-

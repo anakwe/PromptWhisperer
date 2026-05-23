@@ -38,6 +38,8 @@ class PromptBuilderImpl : PromptBuilder {
             RecommendedArchitectureBlock(),
             EngineeringTradeOffsBlock(),
             SuggestedDeliveryPrioritiesBlock(),
+            ContaminationWarningBlock(),
+            ContextDiagnosticsBlock(),
             ArchitectureBlock(),
             SecurityBlock(),
             TestingBlock(),

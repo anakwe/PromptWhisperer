@@ -64,4 +64,9 @@ data class PromptSessionConfig(
     val enabledGuardrails: List<Guardrail> = Guardrail.all().filter { it.enabled },
     val requestAnalysis: RequestAnalysis? = null,
     val clarificationQuestions: List<ClarificationQuestion> = emptyList(),
+    val contextScope: ContextScope = ContextScope.PROJECT,
+    val enableContextTracing: Boolean = false,
+    val enableContaminationDetection: Boolean = true,
+    val inheritedAssumptions: List<String> = emptyList(),
+    val analyzedTaskFingerprint: String? = null,
 )
