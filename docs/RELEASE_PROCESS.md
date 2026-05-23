@@ -36,7 +36,7 @@ Update the version in:
 Current version property example:
 
 ```ini
-version=0.1.0
+version=0.2.0
 ```
 
 For a new release:
@@ -113,7 +113,7 @@ Example:
 ```bash
 git status
 git add gradle.properties CHANGELOG.md README.md docs/
-git commit -m "release: prepare v0.1.0"
+git commit -m "release: prepare v0.2.0"
 ```
 
 Adjust the file list as needed for the actual release contents.
@@ -123,8 +123,8 @@ Adjust the file list as needed for the actual release contents.
 Create the release tag from the committed release state:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 Use the version that matches `gradle.properties` and the changelog entry.
@@ -140,8 +140,8 @@ Create a GitHub release for the matching tag and attach:
 Recommended steps:
 
 1. open the repository releases page on GitHub
-2. create a new release from tag `v0.1.0`
-3. set the release title to `Prompt Whisperer v0.1.0`
+2. create a new release from tag `v0.2.0`
+3. set the release title to `Prompt Whisperer v0.2.0`
 4. paste the release notes
 5. upload the ZIP artefact
 6. include the checksum in the release body
@@ -163,22 +163,22 @@ Recommended steps:
 
 ## Release Notes Template
 
-Use this as a short starting point for `v0.1.0`.
+Use this as a short starting point for `v0.2.0`.
 
 ```markdown
-## Prompt Whisperer v0.1.0
+## Prompt Whisperer v0.2.0
 
-Initial public release of Prompt Whisperer, a local-first engineering implementation planning tool for AI coding assistants.
+Focused quality and reliability release for context isolation, clarification quality, and prompt merge correctness.
 
 ### Highlights
-- Two-stage clarification workflow
-- Behaviour profiles and prompt depth controls
-- Guardrail-driven prompt generation
-- Prompt synthesis with implementation guidance, conflicts, and trade-off framing
-- Local-first design with no hidden telemetry or automatic prompt submission
+- Added strict domain-gated clarification selection with confidence thresholds to prevent cross-domain contamination.
+- Added diagnostics around clarification question selection reasons.
+- Fixed conflict detection to respect explicit prompt intent that authentication is deferred.
+- Fixed architecture merge precedence so explicit source stack choices override "No preference" clarification answers.
+- Added regressions for domain isolation and stack-precedence behavior.
 
 ### Artefacts
-- Plugin ZIP: `prompt-whisperer-0.1.0.zip`
+- Plugin ZIP: `prompt-whisperer-0.2.0.zip`
 - SHA-256: `<paste checksum here>`
 
 ### Notes

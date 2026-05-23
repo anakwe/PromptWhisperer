@@ -294,6 +294,48 @@ class SuggestedDeliveryPrioritiesBlock : PromptBlock {
     }
 }
 
+class ContaminationWarningBlock : PromptBlock {
+    override fun render(context: PromptBuildContext): String {
+        val warnings = context.inference.contaminationWarnings
+        if (warnings.isEmpty()) {
+            return ""
+        }
+
+        return """
+            ## Potential Context Contamination Detected
+
+            ${warnings.joinToString("\n") { "- $it" }}
+            """.trimIndent()
+    }
+}
+
+class ContextDiagnosticsBlock : PromptBlock {
+    override fun render(context: PromptBuildContext): String {
+        if (!context.config.enableContextTracing) {
+            return ""
+        }
+
+        val inheritedPreview =
+            context.config.inheritedAssumptions
+                .take(5)
+                .joinToString("\n") { "- $it" }
+                .ifBlank { "- (none)" }
+
+        return """
+            ## Context Diagnostics
+
+            [PromptWhisperer]
+            Context sources:
+            ${context.inference.contextSources.joinToString("\n") { "- $it" }}
+
+            Inferred domain profile: ${context.inference.domainProfile.name.lowercase()}
+            Context scope: ${context.config.contextScope.name.lowercase()}
+            Inherited assumptions (preview):
+            $inheritedPreview
+            """.trimIndent()
+    }
+}
+
 class ArchitectureBlock : PromptBlock {
     override fun render(context: PromptBuildContext): String {
         if (context.config.promptDepth == PromptDepth.MINIMAL && context.config.promptMode != PromptMode.ARCHITECTURE) {

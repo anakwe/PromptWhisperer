@@ -13,24 +13,25 @@ class SecurityFilterTests {
     @Test
     fun `secret-like files are excluded from safe files and file contents`() {
         // These files are commonly committed by mistake and must never be fed to prompt context.
-        val blockedFiles = listOf(
-            ".env",
-            ".env.local",
-            ".env.production",
-            "secrets.yaml",
-            "config/secrets.yaml",
-            "credentials.json",
-            "aws/credentials",
-            "prod.tfvars",
-            "terraform.tfstate",
-            "terraform.tfstate.backup",
-            "private.key",
-            "server.pem",
-            "keystore.jks",
-            "cert.p12",
-            "id_rsa",
-            "id_ed25519",
-        )
+        val blockedFiles =
+            listOf(
+                ".env",
+                ".env.local",
+                ".env.production",
+                "secrets.yaml",
+                "config/secrets.yaml",
+                "credentials.json",
+                "aws/credentials",
+                "prod.tfvars",
+                "terraform.tfstate",
+                "terraform.tfstate.backup",
+                "private.key",
+                "server.pem",
+                "keystore.jks",
+                "cert.p12",
+                "id_rsa",
+                "id_ed25519",
+            )
 
         val raw =
             SafeProjectContext(

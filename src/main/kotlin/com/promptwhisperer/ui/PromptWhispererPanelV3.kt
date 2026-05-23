@@ -5,6 +5,7 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.JBTextField
 import com.promptwhisperer.models.BehaviourProfile
+import com.promptwhisperer.models.ContextScope
 import com.promptwhisperer.models.PromptDepth
 import com.promptwhisperer.models.PromptMode
 import com.promptwhisperer.models.PromptSessionConfig
@@ -12,7 +13,11 @@ import com.promptwhisperer.services.ArtefactPersistenceServiceImpl
 import com.promptwhisperer.services.BehaviourProfileServiceImpl
 import com.promptwhisperer.services.ClarificationServiceImpl
 import com.promptwhisperer.services.DiagnosticPhase
+import com.promptwhisperer.services.EnhancementMemorySnapshot
+import com.promptwhisperer.services.EnhancementMemoryStore
 import com.promptwhisperer.services.FailedCommand
+import com.promptwhisperer.services.HashingServiceImpl
+import com.promptwhisperer.services.InferenceEngine
 import com.promptwhisperer.services.PromptBuilderImpl
 import com.promptwhisperer.services.TroubleshootingServiceImpl
 import com.promptwhisperer.services.TroubleshootingState
@@ -45,6 +50,7 @@ class PromptWhispererPanelV3(private val project: Project) {
     private val modeSelector = JComboBox(PromptMode.values())
     private val behaviourProfileSelector = JComboBox(BehaviourProfile.values())
     private val promptDepthSelector = JComboBox(PromptDepth.values())
+    private val contextScopeSelector = JComboBox(ContextScope.values())
 
     private val taskInputArea =
         JBTextArea(6, 60).apply {
@@ -66,6 +72,9 @@ class PromptWhispererPanelV3(private val project: Project) {
     private val clearQuestionsButton = JButton("Clear Questions")
     private val generateButton = JButton("Generate Prompt")
     private val togglePromptPanelButton = JButton("Hide Prompt")
+    private val statelessButton = JButton("Start Stateless Enhancement")
+    private val resetMemoryButton = JButton("Reset Enhancement Memory")
+    private val showInheritedButton = JButton("Show Inherited Assumptions")
     private val saveButton = JButton("Save Artefact")
     private val resetButton = JButton("Reset")
 
@@ -86,6 +95,9 @@ class PromptWhispererPanelV3(private val project: Project) {
     private val promptBuilder = PromptBuilderImpl()
     private val troubleshootingService = TroubleshootingServiceImpl()
     private val artefactPersistenceService = ArtefactPersistenceServiceImpl(project)
+    private val inferenceEngine = InferenceEngine()
+    private val hashingService = HashingServiceImpl()
+    private val enhancementMemoryStore = EnhancementMemoryStore()
 
     private val cardLayout = CardLayout()
     private val inputCard = JPanel(cardLayout)
@@ -100,10 +112,12 @@ class PromptWhispererPanelV3(private val project: Project) {
 
     private var sessionConfig = PromptSessionConfig()
     private var didAnalyseRequest = false
+    private var lastAnalysedTaskFingerprint: String? = null
 
     init {
         setupLayout()
         wireActions()
+        contextScopeSelector.selectedItem = ContextScope.PROJECT
         applyProfileDefaults()
         promptOutputPanel.clear("No prompt generated yet. Describe a task and click Analyse Request.")
     }
@@ -182,6 +196,8 @@ class PromptWhispererPanelV3(private val project: Project) {
                 add(behaviourProfileSelector)
                 add(JLabel("Depth:"))
                 add(promptDepthSelector)
+                add(JLabel("Context Scope:"))
+                add(contextScopeSelector)
             }
 
         val infoPanel =
@@ -255,6 +271,9 @@ class PromptWhispererPanelV3(private val project: Project) {
             add(clearQuestionsButton)
             add(generateButton)
             add(togglePromptPanelButton)
+            add(statelessButton)
+            add(resetMemoryButton)
+            add(showInheritedButton)
             add(saveButton)
             add(resetButton)
         }
@@ -294,6 +313,12 @@ class PromptWhispererPanelV3(private val project: Project) {
             updateDepthInfo()
         }
 
+        contextScopeSelector.addActionListener {
+            val scope = selectedContextScope()
+            promptOutputPanel.setState("Context scope set: ${scope.name.lowercase()}", Color(53, 97, 180))
+            log("Context scope set to ${scope.name.lowercase()}.")
+        }
+
         analyseButton.addActionListener {
             if (selectedMode() == PromptMode.TROUBLESHOOTING) {
                 runTroubleshootingAnalysis()
@@ -308,6 +333,28 @@ class PromptWhispererPanelV3(private val project: Project) {
 
         togglePromptPanelButton.addActionListener {
             togglePromptPanelVisibility()
+        }
+
+        statelessButton.addActionListener {
+            contextScopeSelector.selectedItem = ContextScope.STATELESS
+            log("Stateless enhancement enabled for the current session.")
+        }
+
+        resetMemoryButton.addActionListener {
+            val scope = selectedContextScope()
+            enhancementMemoryStore.reset(scope, projectKey())
+            log("Enhancement memory reset for scope ${scope.name.lowercase()}.")
+        }
+
+        showInheritedButton.addActionListener {
+            val snapshot = enhancementMemoryStore.read(selectedContextScope(), projectKey())
+            val lines = snapshot.assumptions.take(8)
+            if (lines.isEmpty()) {
+                log("Inherited assumptions: (none)")
+            } else {
+                log("Inherited assumptions preview:")
+                lines.forEach { line -> log("- $line") }
+            }
         }
 
         clearQuestionsButton.addActionListener {
@@ -383,11 +430,18 @@ class PromptWhispererPanelV3(private val project: Project) {
         val questions = clarificationService.generateClarifications(task, profile, mode)
         clarificationPanel.setQuestions(questions)
         didAnalyseRequest = true
+        lastAnalysedTaskFingerprint = fingerprintForTask(task)
 
         workflowStateLabel.text = "Stage 2: Answer clarification questions, then click Generate Prompt"
         workflowStateLabel.foreground = Color(59, 89, 152)
         generateButton.isEnabled = true
         log("Analysis complete: ${questions.size} clarification questions generated.")
+        clarificationService
+            .getLastSelectionDiagnostics()
+            .take(6)
+            .forEach { diagnostic ->
+                log("Question selected: '${diagnostic.question}' Reason: ${diagnostic.reason}")
+            }
         if (questions.isNotEmpty()) {
             log("Step 2 ready: answer questions in 'Clarification Questions', then click Generate Prompt.")
         }
@@ -413,10 +467,19 @@ class PromptWhispererPanelV3(private val project: Project) {
         val profile = selectedProfile()
         val depth = selectedDepth()
         val mode = selectedMode()
+        val scope = selectedContextScope()
+        val taskFingerprint = fingerprintForTask(task)
+
+        if (didAnalyseRequest && lastAnalysedTaskFingerprint != null && lastAnalysedTaskFingerprint != taskFingerprint) {
+            log("Task changed since analysis. Stale clarification answers were cleared to prevent context contamination.")
+            clearQuestions(keepLog = true)
+        }
+
         val guardrails = guardrailPanel.selectedGuardrails().filter { it.enabled }
         val answers = clarificationPanel.answersMap()
         val clarificationQuestions = clarificationPanel.questionsWithAnswers()
-        val analysis = clarificationService.analyzeRequest(task, answers)
+        val inheritedMemory = enhancementMemoryStore.read(scope, projectKey())
+        val analysis = clarificationService.analyzeRequest(task, answers, profile, mode)
 
         sessionConfig =
             PromptSessionConfig(
@@ -426,9 +489,28 @@ class PromptWhispererPanelV3(private val project: Project) {
                 enabledGuardrails = guardrails,
                 requestAnalysis = analysis,
                 clarificationQuestions = clarificationQuestions,
+                contextScope = scope,
+                inheritedAssumptions = inheritedMemory.assumptions,
+                analyzedTaskFingerprint = taskFingerprint,
             )
 
         val prompt = promptBuilder.buildImplementationPrompt(task, sessionConfig)
+        val inference = inferenceEngine.analyze(task, sessionConfig)
+        inference.contaminationWarnings.forEach { warning -> log("[Context Warning] $warning") }
+        log(
+            "Context sources: ${inference.contextSources.joinToString(", ")} | domain=${inference.domainProfile.name.lowercase()} | inherited=${inheritedMemory.assumptions.size}",
+        )
+
+        val reusableAssumptions =
+            (inference.clarificationGuidance + inference.architectureConcerns + inference.securityConcerns)
+                .take(24)
+                .distinct()
+        enhancementMemoryStore.write(
+            scope,
+            projectKey(),
+            EnhancementMemorySnapshot(assumptions = reusableAssumptions, taskFingerprint = taskFingerprint),
+        )
+
         ensurePromptPanelVisible()
         promptOutputPanel.setPrompt(
             promptText = prompt,
@@ -527,6 +609,7 @@ class PromptWhispererPanelV3(private val project: Project) {
         tsErrorOutputArea.text = ""
         tsMaterialChangeField.text = ""
         clearQuestions(keepLog = true)
+        lastAnalysedTaskFingerprint = null
         applyProfileDefaults()
         generateButton.isEnabled = true
         activityLog.text = ""
@@ -539,6 +622,7 @@ class PromptWhispererPanelV3(private val project: Project) {
     private fun clearQuestions(keepLog: Boolean) {
         clarificationPanel.clearQuestions()
         didAnalyseRequest = false
+        lastAnalysedTaskFingerprint = null
         if (!keepLog) {
             workflowStateLabel.text = "Clarification questions cleared. You can analyse again or generate directly."
             workflowStateLabel.foreground = Color(153, 102, 0)
@@ -591,6 +675,13 @@ class PromptWhispererPanelV3(private val project: Project) {
         behaviourProfileSelector.selectedItem as? BehaviourProfile ?: BehaviourProfile.default()
 
     private fun selectedDepth(): PromptDepth = promptDepthSelector.selectedItem as? PromptDepth ?: PromptDepth.default()
+
+    private fun selectedContextScope(): ContextScope =
+        contextScopeSelector.selectedItem as? ContextScope ?: ContextScope.PROJECT
+
+    private fun projectKey(): String = project.basePath ?: project.name
+
+    private fun fingerprintForTask(task: String): String = hashingService.sha256(task.trim().lowercase().toByteArray())
 
     private fun log(message: String) {
         activityLog.append("$message\n")
